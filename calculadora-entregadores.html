@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calculadora de Escala — Cali House</title>
+<script>
+  if (localStorage.getItem('calc_unlocked') !== '1') {
+    document.documentElement.classList.add('locked');
+  }
+</script>
 <style>
   :root {
     --bg: #faf7f3;
@@ -216,9 +221,68 @@
     -webkit-appearance: none; margin: 0;
   }
   td.cell.editable input:focus { outline: 2px solid rgba(0,0,0,0.25); border-radius: 4px; }
+
+  html.locked .wrap { display: none; }
+  #lockScreen { display: none; }
+  html.locked #lockScreen {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    padding: 20px;
+  }
+  .lock-box {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px 24px;
+    max-width: 320px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  }
+  .lock-box h2 { margin: 0 0 8px; font-size: 18px; color: var(--ink); }
+  .lock-box p { margin: 0 0 16px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .lock-box input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 15px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+  }
+  .lock-box input:focus { outline: none; border-color: var(--brand); }
+  .lock-box button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: var(--brand);
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .lock-box button:hover { background: var(--brand-dark); }
+  .lock-error { color: var(--brand-dark); font-size: 12.5px; margin-top: 8px; min-height: 16px; }
 </style>
 </head>
 <body>
+
+<div id="lockScreen">
+  <div class="lock-box">
+    <h2>Acesso restrito</h2>
+    <p>Essa calculadora é de uso interno. Digite a senha para continuar.</p>
+    <input type="password" id="lockPass" placeholder="Senha" autocomplete="current-password">
+    <button id="lockBtn">Entrar</button>
+    <div class="lock-error" id="lockError"></div>
+  </div>
+</div>
+
 <div class="wrap">
 
 <header>
@@ -792,6 +856,31 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 compute();
 computeGoalSchedule();
 computeMySchedule();
+
+(function() {
+  const CORRECT_HASH = '6f3df557071a97ffadcc498c2fb6acfbd240d0a1fc9403d7a46aaa17b3a0ccb6';
+  async function sha256(text) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  const btn = document.getElementById('lockBtn');
+  const input = document.getElementById('lockPass');
+  const err = document.getElementById('lockError');
+  async function tryUnlock() {
+    const hash = await sha256(input.value);
+    if (hash === CORRECT_HASH) {
+      err.textContent = '';
+      document.documentElement.classList.remove('locked');
+      localStorage.setItem('calc_unlocked', '1');
+    } else {
+      err.textContent = 'Senha incorreta.';
+      input.value = '';
+      input.focus();
+    }
+  }
+  btn.addEventListener('click', tryUnlock);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') tryUnlock(); });
+})();
 </script>
 </body>
 </html>
