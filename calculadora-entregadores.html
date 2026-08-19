@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Escala — Cali House</title>
+<style>
+  :root {
+    --bg: #faf7f3;
+    --panel: #ffffff;
+    --ink: #24201c;
+    --muted: #7a736a;
+    --line: #e8e1d6;
+    --brand: #d9542f;
+    --brand-dark: #a83e20;
+    --brand-soft: #fce8e0;
+    --good: #2f7d4f;
+    --good-soft: #e5f3ea;
+    --warn: #b8860b;
+    --warn-soft: #fdf3dc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', -apple-system, Roboto, sans-serif;
+    background: var(--bg);
+    margin: 0;
+    padding: 18px 12px 50px;
+    color: var(--ink);
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  header { margin-bottom: 18px; }
+  h1 {
+    font-size: 21px;
+    margin: 0 0 3px;
+    letter-spacing: -0.01em;
+  }
+  .subtitle { font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .panel h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--brand-dark);
+    margin: 0 0 12px;
+    font-weight: 700;
+  }
+
+  .grid-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 14px;
+  }
+  @media (max-width: 480px) {
+    .grid-inputs { grid-template-columns: 1fr; }
+  }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .field .row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .field input[type=number] {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    background: #fdfcfa;
+  }
+  .field input[type=number]:focus {
+    outline: none;
+    border-color: var(--brand);
+  }
+  .field input[type=range] {
+    width: 100%;
+    accent-color: var(--brand);
+  }
+  .unit { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 480px) {
+    .kpis { grid-template-columns: 1fr 1fr; }
+  }
+  .kpi {
+    background: var(--brand-soft);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+  .kpi.alt { background: var(--good-soft); }
+  .kpi .val { font-size: 20px; font-weight: 800; color: var(--brand-dark); line-height: 1.1; }
+  .kpi.alt .val { color: var(--good); }
+  .kpi .lbl { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  .cost-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .cost-table td { font-size: 13.5px; padding: 7px 2px; border-bottom: 1px solid var(--line); }
+  .cost-table td:last-child { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .cost-table tr.total td { font-weight: 800; font-size: 15px; border-top: 2px solid var(--ink); border-bottom: none; padding-top: 10px; }
+  .cost-table tr.diff td { color: var(--muted); font-size: 12.5px; border-bottom: none; }
+  .cost-table tr.diff.up td:last-child { color: var(--brand-dark); }
+  .cost-table tr.diff.down td:last-child { color: var(--good); }
+
+  .table-wrap { overflow-x: auto; border-radius: 10px; }
+  table.grid { border-collapse: collapse; width: 100%; min-width: 600px; }
+  table.grid th, table.grid td { text-align: center; font-size: 11.5px; padding: 5px 3px; }
+  table.grid thead th { color: var(--muted); font-weight: 700; padding-bottom: 8px; }
+  .hourlbl { text-align: left; font-weight: 700; color: var(--ink); white-space: nowrap; padding-right: 8px; font-size: 11px; }
+  td.cell { border-radius: 5px; font-weight: 800; color: white; position: relative; }
+  .over::after {
+    content: '!';
+    position: absolute; top: 0px; right: 2px;
+    font-size: 8px; color: #fff; opacity: 0.9;
+  }
+  .legend-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; }
+  .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 3px; }
+
+  .footnote {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 10px;
+    line-height: 1.5;
+    background: var(--warn-soft);
+    border-left: 3px solid var(--warn);
+    padding: 8px 10px;
+    border-radius: 6px;
+  }
+
+  .reset-btn {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--brand-dark);
+    background: none;
+    border: 1px solid var(--brand);
+    border-radius: 20px;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+  .reset-btn:hover { background: var(--brand-soft); }
+
+  .panel.goal { border: 1.5px solid var(--brand); }
+  .goal-status {
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .goal-status.ok { background: var(--good-soft); color: var(--good); }
+  .goal-status.tight { background: var(--warn-soft); color: var(--warn); }
+  .goal-status.bad { background: var(--brand-soft); color: var(--brand-dark); }
+
+  .bottleneck-list { margin-top: 12px; }
+  .bottleneck-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #fdfaf6;
+    border: 1px solid var(--line);
+    margin-bottom: 6px;
+  }
+  .bottleneck-item .tag {
+    font-weight: 700;
+    color: var(--brand-dark);
+  }
+  .bottleneck-item .gap {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--brand-soft);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .no-bottleneck {
+    font-size: 13px;
+    color: var(--good);
+    background: var(--good-soft);
+    padding: 10px 12px;
+    border-radius: 8px;
+  }
+
+  td.cell.editable { padding: 2px; }
+  td.cell.editable input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-weight: 800;
+    font-size: 12px;
+    color: inherit;
+    padding: 5px 0;
+    -moz-appearance: textfield;
+  }
+  td.cell.editable input::-webkit-outer-spin-button,
+  td.cell.editable input::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  td.cell.editable input:focus { outline: 2px solid rgba(0,0,0,0.25); border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Calculadora de Escala &amp; Custo</h1>
+  <div class="subtitle">Cali Burritos · dados reais de 3 meses (20/05–17/08/2026) · ajuste as variáveis abaixo e a escala e o custo recalculam na hora</div>
+</header>
+
+<div class="panel">
+  <h2>Variáveis de custo</h2>
+  <div class="grid-inputs">
+    <div class="field">
+      <label for="hourRate">Valor da hora (já com encargos)</label>
+      <div class="row">
+        <span class="unit">R$</span>
+        <input type="number" id="hourRate" value="16" step="0.5" min="0">
+        <span class="unit">/h</span>
+      </div>
+    </div>
+    <div class="field">
+      <label for="perDelivery">Valor por entrega</label>
+      <div class="row">
+        <span class="unit">R$</span>
+        <input type="number" id="perDelivery" value="5" step="0.5" min="0">
+        <span class="unit">/entrega</span>
+      </div>
+    </div>
+    <div class="field">
+      <label for="currentCost">Custo atual (avulso) para comparação</label>
+      <div class="row">
+        <span class="unit">R$</span>
+        <input type="number" id="currentCost" value="20000" step="100" min="0">
+        <span class="unit">/mês</span>
+      </div>
+    </div>
+    <div class="field">
+      <label for="hoursPerCourier">Horas/semana por entregador (define o tamanho do pool)</label>
+      <div class="row">
+        <input type="number" id="hoursPerCourier" value="20" step="1" min="1">
+        <span class="unit">h/semana</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Capacidade e regras de escala</h2>
+  <div class="grid-inputs">
+    <div class="field">
+      <label for="capDay">Capacidade de dia (11h–18h)</label>
+      <div class="row">
+        <input type="number" id="capDay" value="3.3" step="0.1" min="0.1">
+        <span class="unit">entregas/h/pessoa</span>
+      </div>
+    </div>
+    <div class="field">
+      <label for="capNight">Capacidade à noite (18h–23h)</label>
+      <div class="row">
+        <input type="number" id="capNight" value="4.1" step="0.1" min="0.1">
+        <span class="unit">entregas/h/pessoa</span>
+      </div>
+    </div>
+    <div class="field">
+      <label for="minDay">Mínimo de entregadores de dia</label>
+      <div class="row">
+        <input type="number" id="minDay" value="2" step="1" min="1">
+        <span class="unit">pessoas</span>
+      </div>
+    </div>
+    <div class="field">
+      <label for="maxNight">Teto de entregadores à noite</label>
+      <div class="row">
+        <input type="number" id="maxNight" value="4" step="1" min="1">
+        <span class="unit">pessoas</span>
+      </div>
+    </div>
+  </div>
+  <button class="reset-btn" id="resetBtn">Restaurar valores padrão</button>
+</div>
+
+<div class="panel">
+  <h2>Resultado</h2>
+  <div class="kpis">
+    <div class="kpi"><div class="val" id="kpiHeadcount">–</div><div class="lbl">entregadores no pool</div></div>
+    <div class="kpi"><div class="val" id="kpiHoursWeek">–</div><div class="lbl">pessoa-horas/semana</div></div>
+    <div class="kpi alt"><div class="val" id="kpiCost">–</div><div class="lbl">custo mensal estimado</div></div>
+    <div class="kpi alt" id="kpiDiffBox"><div class="val" id="kpiDiff">–</div><div class="lbl">vs. custo atual</div></div>
+  </div>
+
+  <table class="cost-table" style="margin-top:16px">
+    <tr><td>Horas/mês (pessoa-horas/semana × 4,33)</td><td id="rowHours">–</td></tr>
+    <tr><td>Custo fixo (horas × valor/hora)</td><td id="rowFixed">–</td></tr>
+    <tr><td>Custo variável (entregas/mês × valor/entrega)</td><td id="rowVariable">–</td></tr>
+    <tr class="total"><td>Total estimado</td><td id="rowTotal">–</td></tr>
+    <tr class="diff"><td colspan="2" id="rowDiffText">–</td></tr>
+  </table>
+</div>
+
+<div class="panel">
+  <h2>Escala semanal resultante</h2>
+  <div class="table-wrap">
+    <table class="grid" id="scheduleGrid"></table>
+  </div>
+  <div class="legend-row" id="legend"></div>
+  <div class="footnote">⚠️ "!" marca horas em que a demanda real passa do teto definido — nesses momentos considere reforço avulso pontual em vez de aumentar o teto fixo. Demanda por hora vem da planilha real de vendas (iFood + 99Food, 20/05–17/08/2026).</div>
+</div>
+
+<div class="panel goal">
+  <h2>Meta de custo — escala sugerida para encaixar no orçamento</h2>
+  <div class="field" style="max-width:260px">
+    <label for="targetCost">Meu orçamento mensal é</label>
+    <div class="row">
+      <span class="unit">R$</span>
+      <input type="number" id="targetCost" value="22000" step="500" min="0">
+      <span class="unit">/mês</span>
+    </div>
+  </div>
+
+  <div id="goalStatus" style="margin-top:14px"></div>
+
+  <div class="table-wrap">
+    <table class="grid" id="goalGrid"></table>
+  </div>
+  <div class="legend-row" id="goalLegend"></div>
+
+  <div class="bottleneck-list">
+    <h2 style="margin-top:14px">Gargalos nessa meta</h2>
+    <div id="bottleneckList"></div>
+  </div>
+
+  <div class="footnote">A escala acima distribui as horas que cabem no orçamento priorizando os horários de maior demanda (mantendo pelo menos 1 pessoa em todo horário aberto). Onde a demanda real exige mais gente do que o orçamento permite, o horário aparece como gargalo — nesses pontos, considere reforço avulso pontual, elevar a meta, ou aceitar atraso/perda de pedido nesse intervalo.</div>
+</div>
+
+<div class="panel goal">
+  <h2>Minha sugestão — edite a escala do seu jeito</h2>
+  <div class="footnote" style="margin-bottom:12px">Clique em qualquer número da grade e mude pra quantos entregadores você acha certo naquele horário. O custo e os gargalos abaixo recalculam sozinhos.</div>
+
+  <div class="table-wrap">
+    <table class="grid" id="myGrid"></table>
+  </div>
+  <div class="legend-row" id="myLegend"></div>
+
+  <div id="myStatus" style="margin-top:14px"></div>
+
+  <table class="cost-table" style="margin-top:10px">
+    <tr><td>Pessoa-horas/semana (sua escala)</td><td id="myRowHours">–</td></tr>
+    <tr><td>Custo fixo (horas × valor/hora)</td><td id="myRowFixed">–</td></tr>
+    <tr><td>Custo variável (entregas/mês × valor/entrega)</td><td id="myRowVariable">–</td></tr>
+    <tr class="total"><td>Total estimado</td><td id="myRowTotal">–</td></tr>
+    <tr class="diff"><td colspan="2" id="myRowDiffText">–</td></tr>
+  </table>
+
+  <div class="bottleneck-list">
+    <h2 style="margin-top:14px">Gargalos na sua escala</h2>
+    <div id="myBottleneckList"></div>
+  </div>
+
+  <button class="reset-btn" id="myResetBtn">Reiniciar com a escala calculada</button>
+</div>
+
+</div>
+
+<script>
+// Demanda real: média de entregas por hora, por dia da semana (11h-22h), da planilha de vendas
+const demand = {"Seg": [3.0, 5.54, 2.92, 2.23, 2.15, 1.85, 2.62, 6.0, 8.0, 11.92, 9.15, 5.08], "Ter": [5.33, 6.08, 4.5, 2.75, 2.75, 1.58, 2.75, 5.67, 9.58, 11.0, 8.83, 5.33], "Qua": [3.62, 6.38, 5.92, 3.38, 2.46, 1.54, 1.92, 5.69, 10.08, 9.92, 9.46, 5.15], "Qui": [3.46, 6.15, 4.15, 2.31, 2.15, 2.31, 2.0, 6.46, 9.15, 12.23, 9.15, 6.46], "Sex": [4.23, 6.54, 4.46, 2.85, 2.77, 1.54, 2.92, 6.08, 14.23, 16.31, 13.31, 5.92], "Sáb": [2.38, 3.23, 5.23, 3.23, 2.85, 2.38, 2.69, 6.85, 12.38, 10.69, 9.62, 6.69], "Dom": [2.15, 4.08, 4.54, 3.92, 3.23, 2.15, 4.31, 8.23, 11.54, 14.23, 10.62, 6.38]};
+const monthlyDeliveries = 2072; // media real/mes, da planilha
+const hoursLabels = ['11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h'];
+const days = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+const els = {
+  hourRate: document.getElementById('hourRate'),
+  perDelivery: document.getElementById('perDelivery'),
+  currentCost: document.getElementById('currentCost'),
+  hoursPerCourier: document.getElementById('hoursPerCourier'),
+  capDay: document.getElementById('capDay'),
+  capNight: document.getElementById('capNight'),
+  minDay: document.getElementById('minDay'),
+  maxNight: document.getElementById('maxNight'),
+  targetCost: document.getElementById('targetCost'),
+};
+
+const defaults = { hourRate:16, perDelivery:5, currentCost:20000, hoursPerCourier:20, capDay:3.3, capNight:4.1, minDay:2, maxNight:4, targetCost:22000 };
+
+function fmtMoney(v) {
+  return 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:0});
+}
+
+function colorClass(n) {
+  return 'c' + Math.min(n, 8);
+}
+
+function compute() {
+  const hourRate = parseFloat(els.hourRate.value) || 0;
+  const perDelivery = parseFloat(els.perDelivery.value) || 0;
+  const currentCost = parseFloat(els.currentCost.value) || 0;
+  const hoursPerCourier = parseFloat(els.hoursPerCourier.value) || 1;
+  const capDay = parseFloat(els.capDay.value) || 0.1;
+  const capNight = parseFloat(els.capNight.value) || 0.1;
+  const minDay = parseInt(els.minDay.value) || 1;
+  const maxNight = parseInt(els.maxNight.value) || 1;
+
+  let weeklyHours = 0;
+  const staffing = {};
+  const overflow = {};
+
+  days.forEach(d => {
+    const arr = demand[d];
+    const staff = [];
+    const over = [];
+    arr.forEach((avg, i) => {
+      const hourNum = 11 + i;
+      const isDay = hourNum < 18;
+      const cap = isDay ? capDay : capNight;
+      const rawNeed = Math.ceil(avg / cap);
+      let c;
+      if (isDay) {
+        c = Math.max(minDay, rawNeed);
+      } else {
+        c = Math.max(2, Math.min(maxNight, rawNeed));
+      }
+      over.push(rawNeed > c);
+      staff.push(c);
+    });
+    staffing[d] = staff;
+    overflow[d] = over;
+    weeklyHours += staff.reduce((a,b)=>a+b,0);
+  });
+
+  const monthlyHours = weeklyHours * 4.33;
+  const fixedCost = monthlyHours * hourRate;
+  const variableCost = monthlyDeliveries * perDelivery;
+  const totalCost = fixedCost + variableCost;
+  const headcount = Math.ceil(weeklyHours / hoursPerCourier);
+  const diff = totalCost - currentCost;
+  const diffPct = currentCost > 0 ? (diff / currentCost * 100) : 0;
+
+  // KPIs
+  document.getElementById('kpiHeadcount').textContent = headcount;
+  document.getElementById('kpiHoursWeek').textContent = Math.round(weeklyHours) + 'h';
+  document.getElementById('kpiCost').textContent = fmtMoney(totalCost);
+  const diffBox = document.getElementById('kpiDiffBox');
+  const diffEl = document.getElementById('kpiDiff');
+  diffEl.textContent = (diff >= 0 ? '+' : '') + fmtMoney(diff);
+  diffBox.style.background = diff > 0 ? 'var(--brand-soft)' : 'var(--good-soft)';
+  diffEl.style.color = diff > 0 ? 'var(--brand-dark)' : 'var(--good)';
+
+  // Cost table
+  document.getElementById('rowHours').textContent = Math.round(monthlyHours) + 'h';
+  document.getElementById('rowFixed').textContent = fmtMoney(fixedCost);
+  document.getElementById('rowVariable').textContent = fmtMoney(variableCost) + ' (' + monthlyDeliveries + ' entregas)';
+  document.getElementById('rowTotal').textContent = fmtMoney(totalCost);
+  const diffRow = document.getElementById('rowDiffText');
+  diffRow.textContent = `Vs. custo atual (${fmtMoney(currentCost)}): ${diff>=0?'+':''}${fmtMoney(diff)} (${diffPct>=0?'+':''}${diffPct.toFixed(0)}%)`;
+  diffRow.parentElement.className = 'diff ' + (diff >= 0 ? 'up' : 'down');
+
+  // Schedule grid
+  const table = document.getElementById('scheduleGrid');
+  let thead = '<thead><tr><th class="hourlbl">Hora</th>';
+  days.forEach(d => thead += `<th>${d}</th>`);
+  thead += '</tr></thead>';
+  let tbody = '<tbody>';
+  hoursLabels.forEach((h, i) => {
+    tbody += `<tr><td class="hourlbl">${h}</td>`;
+    days.forEach(d => {
+      const val = staffing[d][i];
+      const isOver = overflow[d][i];
+      tbody += `<td class="cell ${colorClass(val)}${isOver ? ' over' : ''}">${val}</td>`;
+    });
+    tbody += '</tr>';
+  });
+  tbody += '</tbody>';
+  table.innerHTML = thead + tbody;
+
+  // Legend
+  const maxVal = Math.max(...days.flatMap(d => staffing[d]));
+  const legend = document.getElementById('legend');
+  let lg = '';
+  for (let i = 1; i <= Math.min(maxVal, 8); i++) {
+    lg += `<span><span class="sw ${colorClass(i)}"></span>${i}</span>`;
+  }
+  lg += '<span>! = acima do teto definido</span>';
+  legend.innerHTML = lg;
+}
+
+// Color scale injected dynamically (c1..c8)
+const style = document.createElement('style');
+let css = '';
+const palette = ['#ffe3d8','#ffc4ac','#ffa580','#ff8657','#f26436','#d9542f','#b8431f','#8f3417'];
+for (let i=1;i<=8;i++){
+  const textColor = i <= 2 ? '#7a1f00' : '#fff';
+  css += `.c${i}{background:${palette[i-1]};color:${textColor};}`;
+}
+style.textContent = css;
+document.head.appendChild(style);
+
+function computeGoalSchedule() {
+  const hourRate = parseFloat(els.hourRate.value) || 0;
+  const perDelivery = parseFloat(els.perDelivery.value) || 0;
+  const capDay = parseFloat(els.capDay.value) || 0.1;
+  const capNight = parseFloat(els.capNight.value) || 0.1;
+  const maxNight = parseInt(els.maxNight.value) || 1;
+  const targetCost = parseFloat(els.targetCost.value) || 0;
+
+  const variableCost = monthlyDeliveries * perDelivery;
+  const budgetForHours = targetCost - variableCost;
+  const statusEl = document.getElementById('goalStatus');
+
+  if (budgetForHours <= 0 || hourRate <= 0) {
+    statusEl.innerHTML = `<div class="goal-status bad">Essa meta não cobre nem o custo variável das entregas (${fmtMoney(variableCost)}/mês). Não sobra orçamento pra pagar hora nenhuma — aumente a meta ou reveja o valor por entrega.</div>`;
+    document.getElementById('goalGrid').innerHTML = '';
+    document.getElementById('goalLegend').innerHTML = '';
+    document.getElementById('bottleneckList').innerHTML = '';
+    return;
+  }
+
+  const weeklyBudgetHours = (budgetForHours / hourRate) / 4.33;
+
+  // Build flat list of slots with raw need
+  const slots = [];
+  days.forEach(d => {
+    demand[d].forEach((avg, i) => {
+      const hourNum = 11 + i;
+      const isDay = hourNum < 18;
+      const cap = isDay ? capDay : capNight;
+      const rawNeed = Math.max(1, Math.ceil(avg / cap));
+      const cap_slot = isDay ? Math.max(4, rawNeed) : Math.max(maxNight, 1); // allow day to flex a bit higher, night capped at user's maxNight
+      slots.push({ d, i, avg, rawNeed, staff: 1, capSlot: isDay ? 6 : maxNight });
+    });
+  });
+
+  // Minimum baseline: 1 person every open hour
+  let usedHours = slots.length; // 84 slots x 1h each = 84h baseline
+  let feasible = true;
+  if (usedHours > weeklyBudgetHours) {
+    feasible = false;
+  }
+
+  // Greedily add staff to slots with the largest shortfall (rawNeed - staff), respecting capSlot
+  let remaining = weeklyBudgetHours - usedHours;
+  if (remaining > 0) {
+    let added = true;
+    while (remaining >= 1 && added) {
+      added = false;
+      // find slot with max shortfall
+      let best = null;
+      let bestGap = 0;
+      slots.forEach(s => {
+        const gap = s.rawNeed - s.staff;
+        if (gap > bestGap && s.staff < s.capSlot) {
+          bestGap = gap;
+          best = s;
+        }
+      });
+      if (best) {
+        best.staff += 1;
+        remaining -= 1;
+        usedHours += 1;
+        added = true;
+      }
+    }
+  }
+
+  // Rebuild per-day staffing arrays
+  const staffing = {};
+  const bottlenecks = [];
+  days.forEach(d => staffing[d] = new Array(12).fill(1));
+  slots.forEach(s => {
+    staffing[s.d][s.i] = s.staff;
+    if (s.staff < s.rawNeed) {
+      bottlenecks.push({ d: s.d, hour: hoursLabels[s.i], need: s.rawNeed, have: s.staff, gap: s.rawNeed - s.staff });
+    }
+  });
+
+  const finalMonthlyHours = usedHours * 4.33;
+  const finalFixedCost = finalMonthlyHours * hourRate;
+  const finalTotal = finalFixedCost + variableCost;
+
+  if (!feasible) {
+    statusEl.innerHTML = `<div class="goal-status bad">Nem com 1 entregador por horário aberto essa meta fecha (precisaria de pelo menos ${fmtMoney((84*4.33*hourRate)+variableCost)}/mês só de base). A escala abaixo é a mínima possível, mas passa do seu orçamento.</div>`;
+  } else if (bottlenecks.length > 0) {
+    statusEl.innerHTML = `<div class="goal-status tight">Meta encaixada em ${fmtMoney(finalTotal)}/mês, mas sobra pouco pros picos: ${bottlenecks.length} hora(s) ficam abaixo da demanda real.</div>`;
+  } else {
+    statusEl.innerHTML = `<div class="goal-status ok">Meta encaixada em ${fmtMoney(finalTotal)}/mês, cobrindo toda a demanda real sem gargalos.</div>`;
+  }
+
+  // Render goal grid
+  const table = document.getElementById('goalGrid');
+  let thead = '<thead><tr><th class="hourlbl">Hora</th>';
+  days.forEach(d => thead += `<th>${d}</th>`);
+  thead += '</tr></thead>';
+  let tbody = '<tbody>';
+  hoursLabels.forEach((h, i) => {
+    tbody += `<tr><td class="hourlbl">${h}</td>`;
+    days.forEach(d => {
+      const val = staffing[d][i];
+      const slot = slots.find(s => s.d === d && s.i === i);
+      const isBottleneck = slot && slot.staff < slot.rawNeed;
+      tbody += `<td class="cell ${colorClass(val)}${isBottleneck ? ' over' : ''}">${val}</td>`;
+    });
+    tbody += '</tr>';
+  });
+  tbody += '</tbody>';
+  table.innerHTML = thead + tbody;
+
+  const maxVal = Math.max(...days.flatMap(d => staffing[d]));
+  const goalLegend = document.getElementById('goalLegend');
+  let lg = '';
+  for (let i = 1; i <= Math.min(maxVal, 8); i++) {
+    lg += `<span><span class="sw ${colorClass(i)}"></span>${i}</span>`;
+  }
+  lg += '<span>! = gargalo (fica abaixo da demanda real)</span>';
+  goalLegend.innerHTML = lg;
+
+  // Bottleneck list, sorted by biggest gap, top 8
+  const listEl = document.getElementById('bottleneckList');
+  if (bottlenecks.length === 0) {
+    listEl.innerHTML = '<div class="no-bottleneck">Nenhum gargalo — a escala cobre a demanda real em todos os horários dentro dessa meta.</div>';
+  } else {
+    bottlenecks.sort((a,b) => b.gap - a.gap);
+    listEl.innerHTML = bottlenecks.slice(0, 10).map(b =>
+      `<div class="bottleneck-item"><span class="tag">${b.d} ${b.hour}</span><span>tem ${b.have}, precisaria de ${b.need}</span><span class="gap">déficit de ${b.gap}</span></div>`
+    ).join('');
+    if (bottlenecks.length > 10) {
+      listEl.innerHTML += `<div class="footnote" style="margin-top:8px">+ ${bottlenecks.length - 10} outro(s) horário(s) com gargalo menor.</div>`;
+    }
+  }
+}
+
+// Estado da grade editável do usuário — inicializa vazio, populado na 1a chamada de renderMyGrid
+let myStaffing = null;
+
+function buildDefaultMyStaffing() {
+  const capDay = parseFloat(els.capDay.value) || 0.1;
+  const capNight = parseFloat(els.capNight.value) || 0.1;
+  const minDay = parseInt(els.minDay.value) || 1;
+  const maxNight = parseInt(els.maxNight.value) || 1;
+  const s = {};
+  days.forEach(d => {
+    s[d] = demand[d].map((avg, i) => {
+      const hourNum = 11 + i;
+      const isDay = hourNum < 18;
+      const cap = isDay ? capDay : capNight;
+      const rawNeed = Math.ceil(avg / cap);
+      return isDay ? Math.max(minDay, rawNeed) : Math.max(2, Math.min(maxNight, rawNeed));
+    });
+  });
+  return s;
+}
+
+function computeMySchedule() {
+  const hourRate = parseFloat(els.hourRate.value) || 0;
+  const perDelivery = parseFloat(els.perDelivery.value) || 0;
+  const currentCost = parseFloat(els.currentCost.value) || 0;
+  const capDay = parseFloat(els.capDay.value) || 0.1;
+  const capNight = parseFloat(els.capNight.value) || 0.1;
+
+  if (!myStaffing) myStaffing = buildDefaultMyStaffing();
+
+  // Render grid (only build DOM once; afterwards just keep values in sync)
+  const table = document.getElementById('myGrid');
+  if (!table.dataset.built) {
+    let thead = '<thead><tr><th class="hourlbl">Hora</th>';
+    days.forEach(d => thead += `<th>${d}</th>`);
+    thead += '</tr></thead>';
+    let tbody = '<tbody>';
+    hoursLabels.forEach((h, i) => {
+      tbody += `<tr><td class="hourlbl">${h}</td>`;
+      days.forEach(d => {
+        tbody += `<td class="cell editable c1" data-day="${d}" data-i="${i}"><input type="number" min="0" step="1" value="${myStaffing[d][i]}"></td>`;
+      });
+      tbody += '</tr>';
+    });
+    tbody += '</tbody>';
+    table.innerHTML = thead + tbody;
+    table.dataset.built = '1';
+    table.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const td = inp.closest('td');
+        const d = td.dataset.day;
+        const i = parseInt(td.dataset.i);
+        const v = Math.max(0, parseInt(inp.value) || 0);
+        myStaffing[d][i] = v;
+        td.className = 'cell editable ' + colorClass(v);
+        computeMySchedule();
+      });
+    });
+  }
+
+  // Sync colors/values without rebuilding DOM (avoids losing focus while typing)
+  table.querySelectorAll('td.editable').forEach(td => {
+    const d = td.dataset.day, i = parseInt(td.dataset.i);
+    const v = myStaffing[d][i];
+    td.className = 'cell editable ' + colorClass(v);
+    const inp = td.querySelector('input');
+    if (document.activeElement !== inp) inp.value = v;
+  });
+
+  // Totals + bottlenecks
+  let weeklyHours = 0;
+  const bottlenecks = [];
+  days.forEach(d => {
+    demand[d].forEach((avg, i) => {
+      const v = myStaffing[d][i];
+      weeklyHours += v;
+      const hourNum = 11 + i;
+      const isDay = hourNum < 18;
+      const cap = isDay ? capDay : capNight;
+      const rawNeed = Math.ceil(avg / cap);
+      if (v < rawNeed) bottlenecks.push({ d, hour: hoursLabels[i], need: rawNeed, have: v, gap: rawNeed - v });
+    });
+  });
+
+  const monthlyHours = weeklyHours * 4.33;
+  const fixedCost = monthlyHours * hourRate;
+  const variableCost = monthlyDeliveries * perDelivery;
+  const totalCost = fixedCost + variableCost;
+  const diff = totalCost - currentCost;
+  const diffPct = currentCost > 0 ? (diff / currentCost * 100) : 0;
+
+  document.getElementById('myRowHours').textContent = Math.round(weeklyHours) + 'h/semana';
+  document.getElementById('myRowFixed').textContent = fmtMoney(fixedCost);
+  document.getElementById('myRowVariable').textContent = fmtMoney(variableCost) + ` (${monthlyDeliveries} entregas)`;
+  document.getElementById('myRowTotal').textContent = fmtMoney(totalCost);
+  const diffRow = document.getElementById('myRowDiffText');
+  diffRow.textContent = `Vs. custo atual (${fmtMoney(currentCost)}): ${diff>=0?'+':''}${fmtMoney(diff)} (${diffPct>=0?'+':''}${diffPct.toFixed(0)}%)`;
+  diffRow.parentElement.className = 'diff ' + (diff >= 0 ? 'up' : 'down');
+
+  const statusEl = document.getElementById('myStatus');
+  if (bottlenecks.length === 0) {
+    statusEl.innerHTML = `<div class="goal-status ok">Sua escala cobre a demanda real em todos os horários.</div>`;
+  } else {
+    statusEl.innerHTML = `<div class="goal-status tight">${bottlenecks.length} horário(s) ficam abaixo da demanda real na sua escala.</div>`;
+  }
+
+  const maxVal = Math.max(1, ...days.flatMap(d => myStaffing[d]));
+  const myLegend = document.getElementById('myLegend');
+  let lg = '';
+  for (let i = 1; i <= Math.min(maxVal, 8); i++) {
+    lg += `<span><span class="sw ${colorClass(i)}"></span>${i}</span>`;
+  }
+  myLegend.innerHTML = lg;
+
+  const listEl = document.getElementById('myBottleneckList');
+  if (bottlenecks.length === 0) {
+    listEl.innerHTML = '<div class="no-bottleneck">Nenhum gargalo — sua escala cobre a demanda real em todos os horários.</div>';
+  } else {
+    bottlenecks.sort((a,b) => b.gap - a.gap);
+    listEl.innerHTML = bottlenecks.slice(0, 10).map(b =>
+      `<div class="bottleneck-item"><span class="tag">${b.d} ${b.hour}</span><span>tem ${b.have}, precisaria de ${b.need}</span><span class="gap">déficit de ${b.gap}</span></div>`
+    ).join('');
+    if (bottlenecks.length > 10) {
+      listEl.innerHTML += `<div class="footnote" style="margin-top:8px">+ ${bottlenecks.length - 10} outro(s) horário(s) com gargalo menor.</div>`;
+    }
+  }
+}
+
+document.getElementById('myResetBtn').addEventListener('click', () => {
+  myStaffing = buildDefaultMyStaffing();
+  computeMySchedule();
+});
+
+Object.values(els).forEach(el => el.addEventListener('input', () => { compute(); computeGoalSchedule(); computeMySchedule(); }));
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  Object.keys(defaults).forEach(k => els[k].value = defaults[k]);
+  compute();
+  computeGoalSchedule();
+  myStaffing = buildDefaultMyStaffing();
+  computeMySchedule();
+});
+
+compute();
+computeGoalSchedule();
+computeMySchedule();
+</script>
+</body>
+</html>
