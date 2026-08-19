@@ -209,6 +209,33 @@
     border-radius: 8px;
   }
 
+  .history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fdfaf6;
+    border: 1px solid var(--line);
+    margin-bottom: 6px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .history-item .meta { color: var(--muted); font-size: 12px; }
+  .history-item button {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 16px;
+    border: 1px solid var(--brand);
+    background: none;
+    color: var(--brand-dark);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .history-item button:hover { background: var(--brand-soft); }
+  .history-empty { font-size: 13px; color: var(--muted); padding: 8px 0; }
+
   td.cell.editable { padding: 2px; }
   td.cell.editable input {
     width: 100%;
@@ -465,6 +492,14 @@
   </div>
 
   <button class="reset-btn" id="myResetBtn">Reiniciar com a escala calculada</button>
+  <button class="reset-btn" id="mySaveBtn" style="margin-left:8px">Salvar esta escala</button>
+  <div id="mySaveMsg" style="font-size:12px;color:var(--good);margin-top:6px;min-height:16px"></div>
+
+  <div style="margin-top:16px">
+    <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--brand-dark);margin:0 0 10px;font-weight:700">Histórico de escalas salvas</h2>
+    <div id="myHistoryList"></div>
+    <div class="footnote" style="margin-top:8px">Fica salvo nesse navegador, nesse computador — se limpar os dados do navegador ou abrir em outro aparelho, o histórico não aparece lá. Pra acessar de qualquer lugar, dá pra evoluir isso pra salvar no banco de dados depois.</div>
+  </div>
 </div>
 
 </div>
@@ -535,10 +570,21 @@ function computeGlobalBreakeven() {
     ? `À noite (capacidade assumida de ${capNight}/h), mesmo no limite, o custo por entrega fica acima da meta.`
     : `À noite, a partir de ${n.toFixed(1)} entregas/h por pessoa (dentro da capacidade de ${capNight}/h assumida), sobra ${(capNight-n).toFixed(1)} entrega(s)/h de folga antes de virar risco de atraso.`;
   noteEl.innerHTML = `<div class="goal-status ok">Um entregador parado custa ${fmtMoney(hourRate)}/hora, entregando zero. ${dayMsg} ${nightMsg}</div>`;
+
+  // Exemplo concreto com os valores atuais, pra deixar a conta visível
+  const nLow = Math.max(1, Math.floor(n));
+  const nHigh = Math.ceil(n) + 1;
+  const costLow = (hourRate + nLow * perDelivery) / nLow;
+  const costHigh = (hourRate + nHigh * perDelivery) / nHigh;
+  noteEl.innerHTML += `<div class="footnote" style="margin-top:8px">Como se chega nesse número: numa hora, o custo é ${fmtMoney(hourRate)} fixo (a hora do entregador) + ${fmtMoney(perDelivery)} por cada entrega feita nessa hora. Com ${nLow} entrega(s) na hora, o custo médio por entrega é (${fmtMoney(hourRate)} + ${nLow}×${fmtMoney(perDelivery)}) ÷ ${nLow} = ${fmtMoney2(costLow)} — acima da meta. Com ${nHigh} entregas na mesma hora, vira (${fmtMoney(hourRate)} + ${nHigh}×${fmtMoney(perDelivery)}) ÷ ${nHigh} = ${fmtMoney2(costHigh)} — dentro da meta de ${fmtMoney(target)}. É essa conta, feita hora a hora com a demanda real, que decide o "$" nas grades abaixo.</div>`;
 }
 
 function fmtMoney(v) {
   return 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:0});
+}
+
+function fmtMoney2(v) {
+  return 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
 function colorClass(n) {
@@ -811,6 +857,72 @@ function computeGoalSchedule() {
 // Estado da grade editável do usuário — inicializa vazio, populado na 1a chamada de renderMyGrid
 let myStaffing = null;
 
+const HISTORY_KEY = 'calc_my_history';
+const HISTORY_MAX = 30;
+
+function loadHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveHistoryList(history) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
+function historyWeeklyHours(staffing) {
+  let hours = 0;
+  days.forEach(d => staffing[d].forEach(v => hours += v));
+  return hours;
+}
+
+function fmtDateTime(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function initMyStaffing() {
+  const history = loadHistory();
+  if (history.length > 0) {
+    myStaffing = JSON.parse(JSON.stringify(history[history.length - 1].staffing));
+  } else {
+    myStaffing = buildDefaultMyStaffing();
+  }
+}
+
+function renderHistory() {
+  const history = loadHistory();
+  const listEl = document.getElementById('myHistoryList');
+  if (history.length === 0) {
+    listEl.innerHTML = '<div class="history-empty">Nenhuma escala salva ainda. Ajuste a grade acima e clique em "Salvar esta escala".</div>';
+    return;
+  }
+  const hourRate = parseFloat(els.hourRate.value) || 0;
+  const perDelivery = parseFloat(els.perDelivery.value) || 0;
+  listEl.innerHTML = history.slice().reverse().map((h, idxRev) => {
+    const idx = history.length - 1 - idxRev;
+    const hours = historyWeeklyHours(h.staffing);
+    const cost = hours * 4.33 * hourRate + monthlyDeliveries * perDelivery;
+    return `<div class="history-item">
+      <span><strong>${fmtDateTime(h.timestamp)}</strong><span class="meta"> — ${Math.round(hours)}h/semana · ${fmtMoney(cost)}/mês</span></span>
+      <button data-idx="${idx}" class="load-history-btn">Carregar</button>
+    </div>`;
+  }).join('');
+  listEl.querySelectorAll('.load-history-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx);
+      const h = loadHistory()[idx];
+      if (h) {
+        myStaffing = JSON.parse(JSON.stringify(h.staffing));
+        computeMySchedule();
+        document.getElementById('mySaveMsg').textContent = `Escala de ${fmtDateTime(h.timestamp)} carregada na grade acima.`;
+      }
+    });
+  });
+}
+
 function buildDefaultMyStaffing() {
   const capDay = parseFloat(els.capDay.value) || 0.1;
   const capNight = parseFloat(els.capNight.value) || 0.1;
@@ -837,7 +949,7 @@ function computeMySchedule() {
   const capNight = parseFloat(els.capNight.value) || 0.1;
   const target = parseFloat(els.target.value) || 0;
 
-  if (!myStaffing) myStaffing = buildDefaultMyStaffing();
+  if (!myStaffing) initMyStaffing();
 
   // Render grid (only build DOM once; afterwards just keep values in sync)
   const table = document.getElementById('myGrid');
@@ -956,6 +1068,18 @@ document.getElementById('myResetBtn').addEventListener('click', () => {
   computeMySchedule();
 });
 
+document.getElementById('mySaveBtn').addEventListener('click', () => {
+  if (!myStaffing) return;
+  const history = loadHistory();
+  history.push({ timestamp: new Date().toISOString(), staffing: JSON.parse(JSON.stringify(myStaffing)) });
+  while (history.length > HISTORY_MAX) history.shift();
+  saveHistoryList(history);
+  renderHistory();
+  const msg = document.getElementById('mySaveMsg');
+  msg.textContent = 'Escala salva nesse navegador.';
+  setTimeout(() => { if (msg.textContent === 'Escala salva nesse navegador.') msg.textContent = ''; }, 4000);
+});
+
 Object.values(els).forEach(el => el.addEventListener('input', () => { computeGlobalBreakeven(); compute(); computeGoalSchedule(); computeMySchedule(); }));
 
 document.getElementById('resetBtn').addEventListener('click', () => {
@@ -971,6 +1095,7 @@ computeGlobalBreakeven();
 compute();
 computeGoalSchedule();
 computeMySchedule();
+renderHistory();
 
 (function() {
   const CORRECT_HASH = '58f966a9a6f34334c5d70a548d1c04674296c826c5c5162d49425ce2fe9b78cf';
