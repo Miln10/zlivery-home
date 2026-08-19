@@ -858,7 +858,7 @@ computeGoalSchedule();
 computeMySchedule();
 
 (function() {
-  const CORRECT_HASH = '6f3df557071a97ffadcc498c2fb6acfbd240d0a1fc9403d7a46aaa17b3a0ccb6';
+  const CORRECT_HASH = '58f966a9a6f34334c5d70a548d1c04674296c826c5c5162d49425ce2fe9b78cf';
   async function sha256(text) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
