@@ -134,6 +134,11 @@
     position: absolute; top: 0px; right: 2px;
     font-size: 8px; color: #fff; opacity: 0.9;
   }
+  .pricey::before {
+    content: '$';
+    position: absolute; bottom: 0px; left: 2px;
+    font-size: 8px; color: #fff; opacity: 0.9;
+  }
   .legend-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; }
   .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 3px; }
 
@@ -324,7 +329,25 @@
         <span class="unit">h/semana</span>
       </div>
     </div>
+    <div class="field">
+      <label for="target">Meta de custo por entrega</label>
+      <div class="row">
+        <span class="unit">R$</span>
+        <input type="number" id="target" value="9.5" step="0.5" min="0">
+        <span class="unit">/entrega</span>
+      </div>
+    </div>
   </div>
+</div>
+
+<div class="panel">
+  <h2>Ponto de equilíbrio por entregador</h2>
+  <div class="kpis">
+    <div class="kpi alt"><div class="val" id="kpiIdleCost">–</div><div class="lbl">custo por hora de entregador parado (0 entregas)</div></div>
+    <div class="kpi" id="kpiBreakevenBox"><div class="val" id="kpiBreakeven">–</div><div class="lbl">entregas/h por pessoa p/ bater a meta</div></div>
+  </div>
+  <div id="breakevenNote" style="margin-top:12px"></div>
+  <div class="footnote" style="margin-top:10px">Abaixo desse número de entregas/hora por pessoa, cada entrega sai mais cara que a meta (marcado com "$" nas grades). Acima da capacidade assumida (marcado com "!"), o risco passa a ser atraso/qualidade de serviço, não custo. A faixa saudável fica entre os dois.</div>
 </div>
 
 <div class="panel">
@@ -377,6 +400,7 @@
     <tr><td>Custo variável (entregas/mês × valor/entrega)</td><td id="rowVariable">–</td></tr>
     <tr class="total"><td>Total estimado</td><td id="rowTotal">–</td></tr>
     <tr class="diff"><td colspan="2" id="rowDiffText">–</td></tr>
+    <tr><td>Ponto de equilíbrio (entregas/semana p/ bater a meta)</td><td id="rowBreakeven">–</td></tr>
   </table>
 </div>
 
@@ -432,6 +456,7 @@
     <tr><td>Custo variável (entregas/mês × valor/entrega)</td><td id="myRowVariable">–</td></tr>
     <tr class="total"><td>Total estimado</td><td id="myRowTotal">–</td></tr>
     <tr class="diff"><td colspan="2" id="myRowDiffText">–</td></tr>
+    <tr><td>Ponto de equilíbrio (entregas/semana p/ bater a meta)</td><td id="myRowBreakeven">–</td></tr>
   </table>
 
   <div class="bottleneck-list">
@@ -448,6 +473,7 @@
 // Demanda real: média de entregas por hora, por dia da semana (11h-22h), da planilha de vendas
 const demand = {"Seg": [3.0, 5.54, 2.92, 2.23, 2.15, 1.85, 2.62, 6.0, 8.0, 11.92, 9.15, 5.08], "Ter": [5.33, 6.08, 4.5, 2.75, 2.75, 1.58, 2.75, 5.67, 9.58, 11.0, 8.83, 5.33], "Qua": [3.62, 6.38, 5.92, 3.38, 2.46, 1.54, 1.92, 5.69, 10.08, 9.92, 9.46, 5.15], "Qui": [3.46, 6.15, 4.15, 2.31, 2.15, 2.31, 2.0, 6.46, 9.15, 12.23, 9.15, 6.46], "Sex": [4.23, 6.54, 4.46, 2.85, 2.77, 1.54, 2.92, 6.08, 14.23, 16.31, 13.31, 5.92], "Sáb": [2.38, 3.23, 5.23, 3.23, 2.85, 2.38, 2.69, 6.85, 12.38, 10.69, 9.62, 6.69], "Dom": [2.15, 4.08, 4.54, 3.92, 3.23, 2.15, 4.31, 8.23, 11.54, 14.23, 10.62, 6.38]};
 const monthlyDeliveries = 2072; // media real/mes, da planilha
+const weeklyDeliveriesReal = monthlyDeliveries / 4.33; // media real/semana
 const hoursLabels = ['11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h'];
 const days = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
 
@@ -456,6 +482,7 @@ const els = {
   perDelivery: document.getElementById('perDelivery'),
   currentCost: document.getElementById('currentCost'),
   hoursPerCourier: document.getElementById('hoursPerCourier'),
+  target: document.getElementById('target'),
   capDay: document.getElementById('capDay'),
   capNight: document.getElementById('capNight'),
   minDay: document.getElementById('minDay'),
@@ -463,7 +490,52 @@ const els = {
   targetCost: document.getElementById('targetCost'),
 };
 
-const defaults = { hourRate:16, perDelivery:5, currentCost:20000, hoursPerCourier:20, capDay:3.3, capNight:4.1, minDay:2, maxNight:4, targetCost:22000 };
+const defaults = { hourRate:16, perDelivery:5, currentCost:20000, hoursPerCourier:20, target:9.5, capDay:3.3, capNight:4.1, minDay:2, maxNight:4, targetCost:22000 };
+
+// Ponto de equilíbrio por pessoa (entregas/h) — calculado por computeGlobalBreakeven(), usado nas 3 grades
+let breakevenPerHour = null;
+
+function weeklyBreakeven(weeklyHours, hourRate, perDelivery, target) {
+  const denom = target - perDelivery;
+  if (denom <= 0) return null;
+  return (weeklyHours * hourRate) / denom;
+}
+
+function computeGlobalBreakeven() {
+  const hourRate = parseFloat(els.hourRate.value) || 0;
+  const perDelivery = parseFloat(els.perDelivery.value) || 0;
+  const target = parseFloat(els.target.value) || 0;
+  const capDay = parseFloat(els.capDay.value) || 0.1;
+  const capNight = parseFloat(els.capNight.value) || 0.1;
+  const denom = target - perDelivery;
+
+  document.getElementById('kpiIdleCost').textContent = fmtMoney(hourRate) + '/h';
+
+  const noteEl = document.getElementById('breakevenNote');
+  const breakevenEl = document.getElementById('kpiBreakeven');
+  const breakevenBox = document.getElementById('kpiBreakevenBox');
+
+  if (denom <= 0) {
+    breakevenPerHour = null;
+    breakevenEl.textContent = '—';
+    breakevenBox.style.background = 'var(--brand-soft)';
+    noteEl.innerHTML = `<div class="goal-status bad">O valor que você paga por entrega (${fmtMoney(perDelivery)}) já é maior ou igual à meta (${fmtMoney(target)}). Nenhum volume de entregas faz o custo cair até essa meta — a meta precisa ser maior que ${fmtMoney(perDelivery)}.</div>`;
+    return;
+  }
+
+  const n = hourRate / denom;
+  breakevenPerHour = n;
+  breakevenEl.textContent = n.toFixed(1);
+  breakevenBox.style.background = 'var(--good-soft)';
+
+  const dayMsg = n > capDay
+    ? `De dia (capacidade assumida de ${capDay}/h), mesmo no limite, o custo por entrega fica acima da meta — esse horário é estruturalmente mais caro.`
+    : `De dia, a partir de ${n.toFixed(1)} entregas/h por pessoa (dentro da capacidade de ${capDay}/h assumida), o custo já entra na meta.`;
+  const nightMsg = n > capNight
+    ? `À noite (capacidade assumida de ${capNight}/h), mesmo no limite, o custo por entrega fica acima da meta.`
+    : `À noite, a partir de ${n.toFixed(1)} entregas/h por pessoa (dentro da capacidade de ${capNight}/h assumida), sobra ${(capNight-n).toFixed(1)} entrega(s)/h de folga antes de virar risco de atraso.`;
+  noteEl.innerHTML = `<div class="goal-status ok">Um entregador parado custa ${fmtMoney(hourRate)}/hora, entregando zero. ${dayMsg} ${nightMsg}</div>`;
+}
 
 function fmtMoney(v) {
   return 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:0});
@@ -482,6 +554,7 @@ function compute() {
   const capNight = parseFloat(els.capNight.value) || 0.1;
   const minDay = parseInt(els.minDay.value) || 1;
   const maxNight = parseInt(els.maxNight.value) || 1;
+  const target = parseFloat(els.target.value) || 0;
 
   let weeklyHours = 0;
   const staffing = {};
@@ -537,6 +610,17 @@ function compute() {
   diffRow.textContent = `Vs. custo atual (${fmtMoney(currentCost)}): ${diff>=0?'+':''}${fmtMoney(diff)} (${diffPct>=0?'+':''}${diffPct.toFixed(0)}%)`;
   diffRow.parentElement.className = 'diff ' + (diff >= 0 ? 'up' : 'down');
 
+  const rowBE = document.getElementById('rowBreakeven');
+  const beWeekly = weeklyBreakeven(weeklyHours, hourRate, perDelivery, target);
+  if (beWeekly === null) {
+    rowBE.textContent = 'meta inválida (ver aviso acima)';
+    rowBE.style.color = '';
+  } else {
+    const beDiff = weeklyDeliveriesReal - beWeekly;
+    rowBE.textContent = `${beWeekly.toFixed(0)} (real: ${weeklyDeliveriesReal.toFixed(0)}/semana, ${beDiff>=0?'+':''}${beDiff.toFixed(0)})`;
+    rowBE.style.color = beDiff >= 0 ? 'var(--good)' : 'var(--brand-dark)';
+  }
+
   // Schedule grid
   const table = document.getElementById('scheduleGrid');
   let thead = '<thead><tr><th class="hourlbl">Hora</th>';
@@ -548,7 +632,9 @@ function compute() {
     days.forEach(d => {
       const val = staffing[d][i];
       const isOver = overflow[d][i];
-      tbody += `<td class="cell ${colorClass(val)}${isOver ? ' over' : ''}">${val}</td>`;
+      const perPerson = val > 0 ? demand[d][i] / val : 0;
+      const isPricey = breakevenPerHour !== null && perPerson < breakevenPerHour;
+      tbody += `<td class="cell ${colorClass(val)}${isOver ? ' over' : ''}${isPricey ? ' pricey' : ''}">${val}</td>`;
     });
     tbody += '</tr>';
   });
@@ -563,6 +649,7 @@ function compute() {
     lg += `<span><span class="sw ${colorClass(i)}"></span>${i}</span>`;
   }
   lg += '<span>! = acima do teto definido</span>';
+  lg += '<span>$ = abaixo do ponto de equilíbrio (fica caro)</span>';
   legend.innerHTML = lg;
 }
 
@@ -584,6 +671,7 @@ function computeGoalSchedule() {
   const capNight = parseFloat(els.capNight.value) || 0.1;
   const maxNight = parseInt(els.maxNight.value) || 1;
   const targetCost = parseFloat(els.targetCost.value) || 0;
+  const target = parseFloat(els.target.value) || 0;
 
   const variableCost = monthlyDeliveries * perDelivery;
   const budgetForHours = targetCost - variableCost;
@@ -659,12 +747,19 @@ function computeGoalSchedule() {
   const finalFixedCost = finalMonthlyHours * hourRate;
   const finalTotal = finalFixedCost + variableCost;
 
+  const beWeeklyGoal = weeklyBreakeven(usedHours, hourRate, perDelivery, target);
+  let beMsg = '';
+  if (beWeeklyGoal !== null) {
+    const beDiff = weeklyDeliveriesReal - beWeeklyGoal;
+    beMsg = ` Ponto de equilíbrio dessa escala: ${beWeeklyGoal.toFixed(0)} entregas/semana (real: ${weeklyDeliveriesReal.toFixed(0)}, ${beDiff>=0?'sobra':'falta'} ${Math.abs(beDiff).toFixed(0)}).`;
+  }
+
   if (!feasible) {
-    statusEl.innerHTML = `<div class="goal-status bad">Nem com 1 entregador por horário aberto essa meta fecha (precisaria de pelo menos ${fmtMoney((84*4.33*hourRate)+variableCost)}/mês só de base). A escala abaixo é a mínima possível, mas passa do seu orçamento.</div>`;
+    statusEl.innerHTML = `<div class="goal-status bad">Nem com 1 entregador por horário aberto essa meta fecha (precisaria de pelo menos ${fmtMoney((84*4.33*hourRate)+variableCost)}/mês só de base). A escala abaixo é a mínima possível, mas passa do seu orçamento.${beMsg}</div>`;
   } else if (bottlenecks.length > 0) {
-    statusEl.innerHTML = `<div class="goal-status tight">Meta encaixada em ${fmtMoney(finalTotal)}/mês, mas sobra pouco pros picos: ${bottlenecks.length} hora(s) ficam abaixo da demanda real.</div>`;
+    statusEl.innerHTML = `<div class="goal-status tight">Meta encaixada em ${fmtMoney(finalTotal)}/mês, mas sobra pouco pros picos: ${bottlenecks.length} hora(s) ficam abaixo da demanda real.${beMsg}</div>`;
   } else {
-    statusEl.innerHTML = `<div class="goal-status ok">Meta encaixada em ${fmtMoney(finalTotal)}/mês, cobrindo toda a demanda real sem gargalos.</div>`;
+    statusEl.innerHTML = `<div class="goal-status ok">Meta encaixada em ${fmtMoney(finalTotal)}/mês, cobrindo toda a demanda real sem gargalos.${beMsg}</div>`;
   }
 
   // Render goal grid
@@ -679,7 +774,9 @@ function computeGoalSchedule() {
       const val = staffing[d][i];
       const slot = slots.find(s => s.d === d && s.i === i);
       const isBottleneck = slot && slot.staff < slot.rawNeed;
-      tbody += `<td class="cell ${colorClass(val)}${isBottleneck ? ' over' : ''}">${val}</td>`;
+      const perPerson = val > 0 ? demand[d][i] / val : 0;
+      const isPricey = breakevenPerHour !== null && perPerson < breakevenPerHour;
+      tbody += `<td class="cell ${colorClass(val)}${isBottleneck ? ' over' : ''}${isPricey ? ' pricey' : ''}">${val}</td>`;
     });
     tbody += '</tr>';
   });
@@ -693,6 +790,7 @@ function computeGoalSchedule() {
     lg += `<span><span class="sw ${colorClass(i)}"></span>${i}</span>`;
   }
   lg += '<span>! = gargalo (fica abaixo da demanda real)</span>';
+  lg += '<span>$ = abaixo do ponto de equilíbrio (fica caro)</span>';
   goalLegend.innerHTML = lg;
 
   // Bottleneck list, sorted by biggest gap, top 8
@@ -737,6 +835,7 @@ function computeMySchedule() {
   const currentCost = parseFloat(els.currentCost.value) || 0;
   const capDay = parseFloat(els.capDay.value) || 0.1;
   const capNight = parseFloat(els.capNight.value) || 0.1;
+  const target = parseFloat(els.target.value) || 0;
 
   if (!myStaffing) myStaffing = buildDefaultMyStaffing();
 
@@ -774,7 +873,9 @@ function computeMySchedule() {
   table.querySelectorAll('td.editable').forEach(td => {
     const d = td.dataset.day, i = parseInt(td.dataset.i);
     const v = myStaffing[d][i];
-    td.className = 'cell editable ' + colorClass(v);
+    const perPerson = v > 0 ? demand[d][i] / v : 0;
+    const isPricey = breakevenPerHour !== null && perPerson < breakevenPerHour;
+    td.className = 'cell editable ' + colorClass(v) + (isPricey ? ' pricey' : '');
     const inp = td.querySelector('input');
     if (document.activeElement !== inp) inp.value = v;
   });
@@ -809,6 +910,17 @@ function computeMySchedule() {
   diffRow.textContent = `Vs. custo atual (${fmtMoney(currentCost)}): ${diff>=0?'+':''}${fmtMoney(diff)} (${diffPct>=0?'+':''}${diffPct.toFixed(0)}%)`;
   diffRow.parentElement.className = 'diff ' + (diff >= 0 ? 'up' : 'down');
 
+  const myRowBE = document.getElementById('myRowBreakeven');
+  const myBeWeekly = weeklyBreakeven(weeklyHours, hourRate, perDelivery, target);
+  if (myBeWeekly === null) {
+    myRowBE.textContent = 'meta inválida (ver aviso acima)';
+    myRowBE.style.color = '';
+  } else {
+    const myBeDiff = weeklyDeliveriesReal - myBeWeekly;
+    myRowBE.textContent = `${myBeWeekly.toFixed(0)} (real: ${weeklyDeliveriesReal.toFixed(0)}/semana, ${myBeDiff>=0?'+':''}${myBeDiff.toFixed(0)})`;
+    myRowBE.style.color = myBeDiff >= 0 ? 'var(--good)' : 'var(--brand-dark)';
+  }
+
   const statusEl = document.getElementById('myStatus');
   if (bottlenecks.length === 0) {
     statusEl.innerHTML = `<div class="goal-status ok">Sua escala cobre a demanda real em todos os horários.</div>`;
@@ -822,6 +934,7 @@ function computeMySchedule() {
   for (let i = 1; i <= Math.min(maxVal, 8); i++) {
     lg += `<span><span class="sw ${colorClass(i)}"></span>${i}</span>`;
   }
+  lg += '<span>$ = abaixo do ponto de equilíbrio (fica caro)</span>';
   myLegend.innerHTML = lg;
 
   const listEl = document.getElementById('myBottleneckList');
@@ -843,16 +956,18 @@ document.getElementById('myResetBtn').addEventListener('click', () => {
   computeMySchedule();
 });
 
-Object.values(els).forEach(el => el.addEventListener('input', () => { compute(); computeGoalSchedule(); computeMySchedule(); }));
+Object.values(els).forEach(el => el.addEventListener('input', () => { computeGlobalBreakeven(); compute(); computeGoalSchedule(); computeMySchedule(); }));
 
 document.getElementById('resetBtn').addEventListener('click', () => {
   Object.keys(defaults).forEach(k => els[k].value = defaults[k]);
+  computeGlobalBreakeven();
   compute();
   computeGoalSchedule();
   myStaffing = buildDefaultMyStaffing();
   computeMySchedule();
 });
 
+computeGlobalBreakeven();
 compute();
 computeGoalSchedule();
 computeMySchedule();
