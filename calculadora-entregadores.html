@@ -342,6 +342,7 @@
     <button class="reset-btn primary" id="importBtn">📂 Carregar planilha de vendas</button>
     <button class="reset-btn" id="importResetBtn" hidden>Voltar aos dados originais</button>
     <label class="chk"><input type="checkbox" id="ignoreCancelled" checked> ignorar pedidos cancelados</label>
+    <label class="chk"><input type="checkbox" id="onlyDelivery" checked> só pedidos de delivery</label>
   </div>
   <div id="importMapping"></div>
   <div id="importStatus" style="margin-top:12px"></div>
@@ -1143,13 +1144,15 @@ function parseCSV(text) {
 }
 
 // Lê uma célula e devolve {date:{y,m,d}|null, time:{h,min}|null} ou null
-function parseCell(v) {
+function parseCell(v, allowNumeric) {
+  if (allowNumeric === undefined) allowNumeric = true;
   if (v === null || v === undefined || v === '') return null;
   const fromSerial = n => {
     const out = { date: null, time: null };
     if (n >= 20000 && n < 80000) {
       const dt = new Date(Math.round((n - 25569) * 86400000));
       out.date = { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate() };
+      if (out.date.y < 2015 || out.date.y > 2040) return null;
       if (n % 1 !== 0) out.time = { h: dt.getUTCHours(), min: dt.getUTCMinutes() };
     } else if (n >= 0 && n < 1) {
       const mins = Math.round(n * 1440);
@@ -1157,16 +1160,16 @@ function parseCell(v) {
     } else return null;
     return out;
   };
-  if (typeof v === 'number') return fromSerial(v);
+  if (typeof v === 'number') return allowNumeric ? fromSerial(v) : null;
   const s = String(v).trim();
-  if (/^\d+([.,]\d+)?$/.test(s)) return fromSerial(parseFloat(s.replace(',', '.')));
+  if (/^\d+([.,]\d+)?$/.test(s)) return allowNumeric ? fromSerial(parseFloat(s.replace(',', '.'))) : null;
   let date = null, time = null, m;
   if ((m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/))) date = { y: +m[1], m: +m[2], d: +m[3] };
   else if ((m = s.match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4}|\d{2})(?!\d)/))) {
     let y = +m[3]; if (y < 100) y += 2000;
     date = { y, m: +m[2], d: +m[1] };
   }
-  if (date && (date.m < 1 || date.m > 12 || date.d < 1 || date.d > 31)) date = null;
+  if (date && (date.m < 1 || date.m > 12 || date.d < 1 || date.d > 31 || date.y < 2015 || date.y > 2040)) date = null;
   const t = s.match(/(?:^|[\sT])(\d{1,2})[:h](\d{2})(?::\d{2})?\s*(am|pm)?/i);
   if (t) {
     let h = +t[1];
@@ -1195,13 +1198,15 @@ function detectLayout(table) {
   const rows = table.slice(hi + 1);
   const ncol = Math.max(header.length, ...rows.slice(0, 50).map(r => r.length));
   const stats = [];
+  const dateHeader = /data|date|hora|hour|time|cria|created|abertura|realiza/i;
   for (let c = 0; c < ncol; c++) {
+    const numOK = dateHeader.test(header[c] || '');
     let n = 0, dates = 0, times = 0;
     for (let r = 0; r < rows.length && n < 200; r++) {
       const v = rows[r][c];
       if (v === '' || v === undefined || v === null) continue;
       n++;
-      const p = parseCell(v);
+      const p = parseCell(v, numOK);
       if (p && p.date) dates++;
       if (p && p.time) times++;
     }
@@ -1219,17 +1224,34 @@ function detectLayout(table) {
   }
   let statusCol = null;
   header.forEach((h, i) => { if (statusCol === null && /status|situa|estado/i.test(h)) statusCol = i; });
-  return { header, rows, dateCol, timeCol, statusCol };
+  // Coluna do tipo de pedido (Delivery / Na Loja / Retirada...): pelos valores, senão pelo cabeçalho
+  let typeCol = null, typeBest = -1;
+  for (let c = 0; c < ncol; c++) {
+    const vals = [];
+    for (let r = 0; r < rows.length && vals.length < 300; r++) {
+      const v = String(rows[r][c] === undefined ? '' : rows[r][c]).trim();
+      if (v !== '' && v !== '-') vals.push(v);
+    }
+    if (!vals.length) continue;
+    const hasDel = vals.some(v => /^(delivery|entrega)/i.test(v));
+    const known = vals.filter(v => /^(delivery|entrega|na loja|balc|retirada|mesa|sal[aã]o|takeaway|para levar|comer)/i.test(v)).length / vals.length;
+    if (hasDel && known >= 0.8) {
+      const sc = (/^tipo\b/i.test(header[c] || '') ? 2 : 0) + known;
+      if (sc > typeBest) { typeBest = sc; typeCol = c; }
+    }
+  }
+  return { header, rows, dateCol, timeCol, statusCol, typeCol };
 }
 
 // Conta pedidos por dia da semana e hora (11h–22h) e devolve médias
-function aggregateOrders(rows, cols, ignoreCancelled, dayNames, firstHour, nHours) {
+function aggregateOrders(rows, cols, ignoreCancelled, dayNames, firstHour, nHours, onlyDelivery) {
   const dow = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   const counts = {};
   dayNames.forEach(d => counts[d] = new Array(nHours).fill(0));
-  let used = 0, noDate = 0, cancelled = 0, outside = 0, minT = null, maxT = null;
+  let used = 0, noDate = 0, cancelled = 0, outside = 0, notDelivery = 0, minT = null, maxT = null;
   for (const r of rows) {
     if (ignoreCancelled && cols.statusCol !== null && /cancel/i.test(String(r[cols.statusCol] || ''))) { cancelled++; continue; }
+    if (onlyDelivery && cols.typeCol !== null && !/delivery|entrega/i.test(String(r[cols.typeCol] || ''))) { notDelivery++; continue; }
     const a = cols.dateCol !== null ? parseCell(r[cols.dateCol]) : null;
     if (!a || !a.date) { noDate++; continue; }
     let time = a.time;
@@ -1253,7 +1275,7 @@ function aggregateOrders(rows, cols, ignoreCancelled, dayNames, firstHour, nHour
   });
   const periodDays = Math.round((maxT - minT) / 86400000) + 1;
   return {
-    demand: demandAvg, used, outside, cancelled, noDate, periodDays, minT, maxT,
+    demand: demandAvg, used, outside, cancelled, notDelivery, noDate, periodDays, minT, maxT,
     monthly: Math.round((used + outside) / periodDays * 30)
   };
 }
@@ -1265,6 +1287,7 @@ function aggregateOrders(rows, cols, ignoreCancelled, dayNames, firstHour, nHour
   const importBtn = document.getElementById('importBtn');
   const resetBtn = document.getElementById('importResetBtn');
   const ignoreChk = document.getElementById('ignoreCancelled');
+  const deliveryChk = document.getElementById('onlyDelivery');
   const mappingEl = document.getElementById('importMapping');
   const statusEl = document.getElementById('importStatus');
   const periodEl = document.getElementById('periodLabel');
@@ -1309,10 +1332,11 @@ function aggregateOrders(rows, cols, ignoreCancelled, dayNames, firstHour, nHour
       colSelect('mapDate', 'Coluna da data (ou data + hora)', layout.dateCol, true) +
       colSelect('mapTime', 'Coluna da hora (só se separada da data)', layout.timeCol, true) +
       colSelect('mapStatus', 'Coluna de status (para ignorar cancelados)', layout.statusCol, true) +
+      colSelect('mapType', 'Coluna do tipo (Delivery / Na Loja)', layout.typeCol, true) +
       '</div>';
-    ['mapDate', 'mapTime', 'mapStatus'].forEach(id => document.getElementById(id).addEventListener('change', () => {
+    ['mapDate', 'mapTime', 'mapStatus', 'mapType'].forEach(id => document.getElementById(id).addEventListener('change', () => {
       const v = x => { const e = document.getElementById(x).value; return e === '' ? null : parseInt(e, 10); };
-      layout.dateCol = v('mapDate'); layout.timeCol = v('mapTime'); layout.statusCol = v('mapStatus');
+      layout.dateCol = v('mapDate'); layout.timeCol = v('mapTime'); layout.statusCol = v('mapStatus'); layout.typeCol = v('mapType');
       runAggregation();
     }));
   }
@@ -1323,7 +1347,7 @@ function aggregateOrders(rows, cols, ignoreCancelled, dayNames, firstHour, nHour
       statusEl.innerHTML = '<div class="goal-status bad">Não encontrei a coluna de data/hora dos pedidos. Escolha-a na lista acima.</div>';
       return;
     }
-    const r = aggregateOrders(layout.rows, layout, ignoreChk.checked, days, 11, hoursLabels.length);
+    const r = aggregateOrders(layout.rows, layout, ignoreChk.checked, days, 11, hoursLabels.length, deliveryChk.checked);
     if (!r) {
       statusEl.innerHTML = '<div class="goal-status bad">Nenhum pedido com data e hora válidas com essas colunas. Confira as colunas escolhidas acima (a hora precisa estar na planilha, no mesmo campo da data ou em outra coluna).</div>';
       return;
@@ -1339,6 +1363,8 @@ function aggregateOrders(rows, cols, ignoreCancelled, dayNames, firstHour, nHour
     if (r.periodDays < 14) warns.push(`o período tem só ${r.periodDays} dias, então as médias por dia da semana ficam pouco confiáveis (o ideal é 2 a 3 meses)`);
     if (r.outside > 0) warns.push(`${nfmt(r.outside)} pedido(s) chegaram fora de 11h–22h59 e não aparecem nas grades (entram só no custo variável)`);
     if (r.noDate > 0) warns.push(`${nfmt(r.noDate)} linha(s) sem data/hora legível foram ignoradas`);
+    if (r.notDelivery > 0) warns.push(`${nfmt(r.notDelivery)} pedido(s) que não são delivery (balcão/retirada) foram ignorados`);
+    if (deliveryChk.checked && layout.typeCol === null) warns.push('não encontrei a coluna que diz se o pedido é delivery; escolha-a na lista "Coluna do tipo" para filtrar só delivery');
     if (r.cancelled > 0) warns.push(`${nfmt(r.cancelled)} pedido(s) cancelado(s) foram ignorados`);
     statusEl.innerHTML = `<div class="goal-status ok">✅ ${period}: ${nfmt(r.used + r.outside)} pedidos em ${r.periodDays} dias · média de ${(((r.used + r.outside) / r.periodDays)).toFixed(1).replace('.', ',')} pedidos/dia · ~${nfmt(r.monthly)} pedidos/mês. Escala, custo e metas abaixo foram recalculados com esses dados. Sua grade editável voltou para a escala calculada (as escalas salvas continuam no histórico).</div>` +
       (warns.length ? `<div class="goal-status import-warn" style="font-weight:500">⚠️ ${warns.join('; ')}.</div>` : '');
@@ -1393,6 +1419,7 @@ function aggregateOrders(rows, cols, ignoreCancelled, dayNames, firstHour, nHour
     fileInput.value = '';
   });
   ignoreChk.addEventListener('change', runAggregation);
+  deliveryChk.addEventListener('change', runAggregation);
   resetBtn.addEventListener('click', () => {
     applyData(JSON.parse(JSON.stringify(orig.demand)), orig.monthly, orig.period, orig.src, true);
     try { localStorage.removeItem(STORE_KEY); } catch (e) {}
