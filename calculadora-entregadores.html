@@ -265,8 +265,6 @@
     font-size: 13px; background: #fdfcfa; color: var(--ink);
   }
   .import-warn { background: var(--warn-soft); color: var(--warn); }
-  td.dcell { border-radius: 5px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  tr.dtotal td { border-top: 2px solid var(--ink); font-weight: 800; padding-top: 7px; font-size: 11.5px; }
 
   html.locked .wrap { display: none; }
   #lockScreen { display: none; }
@@ -347,14 +345,6 @@
   </div>
   <div id="importMapping"></div>
   <div id="importStatus" style="margin-top:12px"></div>
-</div>
-
-<div class="panel">
-  <h2>Demanda média por dia e horário (pedidos/hora)</h2>
-  <div class="table-wrap">
-    <table class="grid" id="demandGrid"></table>
-  </div>
-  <div class="footnote">Quantos pedidos, em média, chegam em cada hora de cada dia da semana. É a base de todos os cálculos abaixo. A linha "Total/dia" mostra a média de pedidos por dia.</div>
 </div>
 
 <div class="panel">
@@ -1290,23 +1280,6 @@ function aggregateOrders(rows, cols, ignoreCancelled, dayNames, firstHour, nHour
   const fmtD = t => new Date(t).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   const nfmt = n => n.toLocaleString('pt-BR');
 
-  function renderDemandGrid() {
-    const max = Math.max(0.01, ...days.flatMap(d => demand[d]));
-    let h = '<thead><tr><th class="hourlbl">Hora</th>' + days.map(d => `<th>${d}</th>`).join('') + '</tr></thead><tbody>';
-    hoursLabels.forEach((lbl, i) => {
-      h += `<tr><td class="hourlbl">${lbl}</td>`;
-      days.forEach(d => {
-        const v = demand[d][i];
-        const a = Math.min(1, v / max);
-        h += `<td class="dcell" style="background:rgba(217,84,47,${(0.06 + a * 0.94).toFixed(2)});color:${a > 0.5 ? '#fff' : '#7a1f00'}">${v.toFixed(1).replace('.', ',')}</td>`;
-      });
-      h += '</tr>';
-    });
-    h += '<tr class="dtotal"><td class="hourlbl">Total/dia</td>' +
-      days.map(d => `<td>${demand[d].reduce((a, b) => a + b, 0).toFixed(1).replace('.', ',')}</td>`).join('') + '</tr></tbody>';
-    document.getElementById('demandGrid').innerHTML = h;
-  }
-
   function recomputeAll() {
     computeGlobalBreakeven();
     compute();
@@ -1322,7 +1295,6 @@ function aggregateOrders(rows, cols, ignoreCancelled, dayNames, firstHour, nHour
     weeklyDeliveriesReal = monthly / 4.33;
     periodEl.textContent = periodText;
     srcEl.textContent = srcText;
-    renderDemandGrid();
     if (recompute) recomputeAll();
   }
 
@@ -1437,8 +1409,6 @@ function aggregateOrders(rows, cols, ignoreCancelled, dayNames, firstHour, nHour
     applyData(saved.demand, saved.monthly, saved.period, saved.src, false);
     resetBtn.hidden = false;
     statusEl.innerHTML = '<div class="goal-status ok">Usando a última planilha importada neste navegador. Carregue outra para substituir.</div>';
-  } else {
-    renderDemandGrid();
   }
 })();
 
