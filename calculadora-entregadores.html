@@ -254,6 +254,20 @@
   }
   td.cell.editable input:focus { outline: 2px solid rgba(0,0,0,0.25); border-radius: 4px; }
 
+  .import-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .import-actions .reset-btn { margin-top: 0; }
+  .import-actions .primary { background: var(--brand); color: #fff; font-weight: 700; }
+  .import-actions .primary:hover { background: var(--brand-dark); }
+  .import-actions label.chk { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+  .map-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 14px; margin-top: 12px; }
+  .map-grid select {
+    width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px;
+    font-size: 13px; background: #fdfcfa; color: var(--ink);
+  }
+  .import-warn { background: var(--warn-soft); color: var(--warn); }
+  td.dcell { border-radius: 5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  tr.dtotal td { border-top: 2px solid var(--ink); font-weight: 800; padding-top: 7px; font-size: 11.5px; }
+
   html.locked .wrap { display: none; }
   #lockScreen { display: none; }
   html.locked #lockScreen {
@@ -319,8 +333,29 @@
 
 <header>
   <h1>Calculadora de Escala &amp; Custo</h1>
-  <div class="subtitle">Cali Burritos · dados reais de 3 meses (20/05–17/08/2026) · ajuste as variáveis abaixo e a escala e o custo recalculam na hora</div>
+  <div class="subtitle">Cali Burritos · <span id="periodLabel">dados reais de 3 meses (20/05–17/08/2026)</span> · ajuste as variáveis abaixo e a escala e o custo recalculam na hora</div>
 </header>
+
+<div class="panel goal">
+  <h2>Importar planilha de pedidos reais</h2>
+  <div class="footnote" style="margin-top:0;margin-bottom:12px">Baixe do seu PDV ou do iFood a planilha de pedidos de um período (de preferência 2 a 3 meses) com <strong>data e hora</strong> de cada pedido, em <strong>CSV ou Excel</strong>, e carregue aqui. A calculadora conta os pedidos por dia da semana e por hora, divide pelo número de semanas do período e refaz a escala e o custo com a média real. A leitura acontece no seu navegador: a planilha não é enviada para lugar nenhum.</div>
+  <input type="file" id="salesFile" accept=".csv,.txt,.xlsx,.xls" hidden>
+  <div class="import-actions">
+    <button class="reset-btn primary" id="importBtn">📂 Carregar planilha de vendas</button>
+    <button class="reset-btn" id="importResetBtn" hidden>Voltar aos dados originais</button>
+    <label class="chk"><input type="checkbox" id="ignoreCancelled" checked> ignorar pedidos cancelados</label>
+  </div>
+  <div id="importMapping"></div>
+  <div id="importStatus" style="margin-top:12px"></div>
+</div>
+
+<div class="panel">
+  <h2>Demanda média por dia e horário (pedidos/hora)</h2>
+  <div class="table-wrap">
+    <table class="grid" id="demandGrid"></table>
+  </div>
+  <div class="footnote">Quantos pedidos, em média, chegam em cada hora de cada dia da semana. É a base de todos os cálculos abaixo. A linha "Total/dia" mostra a média de pedidos por dia.</div>
+</div>
 
 <div class="panel">
   <h2>Variáveis de custo</h2>
@@ -437,7 +472,7 @@
     <table class="grid" id="scheduleGrid"></table>
   </div>
   <div class="legend-row" id="legend"></div>
-  <div class="footnote">⚠️ "!" marca horas em que a demanda real passa do teto definido — nesses momentos considere reforço avulso pontual em vez de aumentar o teto fixo. Demanda por hora vem da planilha real de vendas (iFood + 99Food, 20/05–17/08/2026).</div>
+  <div class="footnote">⚠️ "!" marca horas em que a demanda real passa do teto definido — nesses momentos considere reforço avulso pontual em vez de aumentar o teto fixo. Demanda por hora vem da planilha real de vendas (<span id="srcLabel">iFood + 99Food, 20/05–17/08/2026</span>).</div>
 </div>
 
 <div class="panel goal">
@@ -506,9 +541,9 @@
 
 <script>
 // Demanda real: média de entregas por hora, por dia da semana (11h-22h), da planilha de vendas
-const demand = {"Seg": [3.0, 5.54, 2.92, 2.23, 2.15, 1.85, 2.62, 6.0, 8.0, 11.92, 9.15, 5.08], "Ter": [5.33, 6.08, 4.5, 2.75, 2.75, 1.58, 2.75, 5.67, 9.58, 11.0, 8.83, 5.33], "Qua": [3.62, 6.38, 5.92, 3.38, 2.46, 1.54, 1.92, 5.69, 10.08, 9.92, 9.46, 5.15], "Qui": [3.46, 6.15, 4.15, 2.31, 2.15, 2.31, 2.0, 6.46, 9.15, 12.23, 9.15, 6.46], "Sex": [4.23, 6.54, 4.46, 2.85, 2.77, 1.54, 2.92, 6.08, 14.23, 16.31, 13.31, 5.92], "Sáb": [2.38, 3.23, 5.23, 3.23, 2.85, 2.38, 2.69, 6.85, 12.38, 10.69, 9.62, 6.69], "Dom": [2.15, 4.08, 4.54, 3.92, 3.23, 2.15, 4.31, 8.23, 11.54, 14.23, 10.62, 6.38]};
-const monthlyDeliveries = 2072; // media real/mes, da planilha
-const weeklyDeliveriesReal = monthlyDeliveries / 4.33; // media real/semana
+let demand = {"Seg": [3.0, 5.54, 2.92, 2.23, 2.15, 1.85, 2.62, 6.0, 8.0, 11.92, 9.15, 5.08], "Ter": [5.33, 6.08, 4.5, 2.75, 2.75, 1.58, 2.75, 5.67, 9.58, 11.0, 8.83, 5.33], "Qua": [3.62, 6.38, 5.92, 3.38, 2.46, 1.54, 1.92, 5.69, 10.08, 9.92, 9.46, 5.15], "Qui": [3.46, 6.15, 4.15, 2.31, 2.15, 2.31, 2.0, 6.46, 9.15, 12.23, 9.15, 6.46], "Sex": [4.23, 6.54, 4.46, 2.85, 2.77, 1.54, 2.92, 6.08, 14.23, 16.31, 13.31, 5.92], "Sáb": [2.38, 3.23, 5.23, 3.23, 2.85, 2.38, 2.69, 6.85, 12.38, 10.69, 9.62, 6.69], "Dom": [2.15, 4.08, 4.54, 3.92, 3.23, 2.15, 4.31, 8.23, 11.54, 14.23, 10.62, 6.38]};
+let monthlyDeliveries = 2072; // media real/mes, da planilha
+let weeklyDeliveriesReal = monthlyDeliveries / 4.33; // media real/semana
 const hoursLabels = ['11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h'];
 const days = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
 
@@ -1090,6 +1125,322 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   myStaffing = buildDefaultMyStaffing();
   computeMySchedule();
 });
+
+
+// ===== Importação de planilha de pedidos =====
+// <pure>
+function parseCSV(text) {
+  const first = text.split(/\r?\n/, 1)[0] || '';
+  const counts = { ';': 0, ',': 0, '\t': 0 };
+  for (const ch of first) if (ch in counts) counts[ch]++;
+  const delim = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+  const rows = [];
+  let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === delim) { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(cur); cur = ''; rows.push(row); row = [];
+    } else cur += c;
+  }
+  if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(c => String(c).trim() !== ''));
+}
+
+// Lê uma célula e devolve {date:{y,m,d}|null, time:{h,min}|null} ou null
+function parseCell(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const fromSerial = n => {
+    const out = { date: null, time: null };
+    if (n >= 20000 && n < 80000) {
+      const dt = new Date(Math.round((n - 25569) * 86400000));
+      out.date = { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate() };
+      if (n % 1 !== 0) out.time = { h: dt.getUTCHours(), min: dt.getUTCMinutes() };
+    } else if (n >= 0 && n < 1) {
+      const mins = Math.round(n * 1440);
+      out.time = { h: Math.floor(mins / 60) % 24, min: mins % 60 };
+    } else return null;
+    return out;
+  };
+  if (typeof v === 'number') return fromSerial(v);
+  const s = String(v).trim();
+  if (/^\d+([.,]\d+)?$/.test(s)) return fromSerial(parseFloat(s.replace(',', '.')));
+  let date = null, time = null, m;
+  if ((m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/))) date = { y: +m[1], m: +m[2], d: +m[3] };
+  else if ((m = s.match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4}|\d{2})(?!\d)/))) {
+    let y = +m[3]; if (y < 100) y += 2000;
+    date = { y, m: +m[2], d: +m[1] };
+  }
+  if (date && (date.m < 1 || date.m > 12 || date.d < 1 || date.d > 31)) date = null;
+  const t = s.match(/(?:^|[\sT])(\d{1,2})[:h](\d{2})(?::\d{2})?\s*(am|pm)?/i);
+  if (t) {
+    let h = +t[1];
+    if (t[3]) { const pm = t[3].toLowerCase() === 'pm'; h = (h % 12) + (pm ? 12 : 0); }
+    if (h <= 23 && +t[2] <= 59) time = { h, min: +t[2] };
+  }
+  if (!date && !time) return null;
+  return { date, time };
+}
+
+function headerScore(h) {
+  h = String(h || '').toLowerCase();
+  let sc = 0;
+  if (/cria|created|realiza|pedido|order|placed|abertura|data|date|hora|time/.test(h)) sc += 1;
+  if (/entreg|deliver|conclu|fecha|pagamento|cancel|previs|agend|nasc/.test(h)) sc -= 2;
+  return sc;
+}
+
+// Escolhe a linha de cabeçalho e as colunas de data/hora/status
+function detectLayout(table) {
+  let hi = 0;
+  for (let i = 0; i < Math.min(20, table.length); i++) {
+    if (table[i].some(c => /data|date|hora|hour|criad|created|status|pedido/i.test(String(c)))) { hi = i; break; }
+  }
+  const header = table[hi].map(c => String(c).trim());
+  const rows = table.slice(hi + 1);
+  const ncol = Math.max(header.length, ...rows.slice(0, 50).map(r => r.length));
+  const stats = [];
+  for (let c = 0; c < ncol; c++) {
+    let n = 0, dates = 0, times = 0;
+    for (let r = 0; r < rows.length && n < 200; r++) {
+      const v = rows[r][c];
+      if (v === '' || v === undefined || v === null) continue;
+      n++;
+      const p = parseCell(v);
+      if (p && p.date) dates++;
+      if (p && p.time) times++;
+    }
+    stats.push({ c, n, dateFrac: n ? dates / n : 0, timeFrac: n ? times / n : 0, score: headerScore(header[c]) });
+  }
+  const best = arr => arr.sort((a, b) => b.score - a.score || a.c - b.c)[0];
+  const dt = best(stats.filter(s => s.dateFrac >= 0.8 && s.timeFrac >= 0.8));
+  let dateCol = null, timeCol = null;
+  if (dt) { dateCol = dt.c; }
+  else {
+    const d = best(stats.filter(s => s.dateFrac >= 0.8));
+    const t = best(stats.filter(s => s.timeFrac >= 0.8 && s.dateFrac < 0.2));
+    if (d) dateCol = d.c;
+    if (t) timeCol = t.c;
+  }
+  let statusCol = null;
+  header.forEach((h, i) => { if (statusCol === null && /status|situa|estado/i.test(h)) statusCol = i; });
+  return { header, rows, dateCol, timeCol, statusCol };
+}
+
+// Conta pedidos por dia da semana e hora (11h–22h) e devolve médias
+function aggregateOrders(rows, cols, ignoreCancelled, dayNames, firstHour, nHours) {
+  const dow = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const counts = {};
+  dayNames.forEach(d => counts[d] = new Array(nHours).fill(0));
+  let used = 0, noDate = 0, cancelled = 0, outside = 0, minT = null, maxT = null;
+  for (const r of rows) {
+    if (ignoreCancelled && cols.statusCol !== null && /cancel/i.test(String(r[cols.statusCol] || ''))) { cancelled++; continue; }
+    const a = cols.dateCol !== null ? parseCell(r[cols.dateCol]) : null;
+    if (!a || !a.date) { noDate++; continue; }
+    let time = a.time;
+    if (!time && cols.timeCol !== null) { const b = parseCell(r[cols.timeCol]); time = b && b.time; }
+    if (!time) { noDate++; continue; }
+    const t = Date.UTC(a.date.y, a.date.m - 1, a.date.d);
+    if (minT === null || t < minT) minT = t;
+    if (maxT === null || t > maxT) maxT = t;
+    const i = time.h - firstHour;
+    if (i < 0 || i >= nHours) { outside++; continue; }
+    counts[dow[new Date(t).getUTCDay()]][i]++;
+    used++;
+  }
+  if (minT === null || used + outside === 0) return null;
+  const occ = {};
+  dayNames.forEach(d => occ[d] = 0);
+  for (let t = minT; t <= maxT; t += 86400000) occ[dow[new Date(t).getUTCDay()]]++;
+  const demandAvg = {};
+  dayNames.forEach(d => {
+    demandAvg[d] = counts[d].map(c => occ[d] ? Math.round(c / occ[d] * 100) / 100 : 0);
+  });
+  const periodDays = Math.round((maxT - minT) / 86400000) + 1;
+  return {
+    demand: demandAvg, used, outside, cancelled, noDate, periodDays, minT, maxT,
+    monthly: Math.round((used + outside) / periodDays * 30)
+  };
+}
+// </pure>
+
+(function() {
+  const STORE_KEY = 'calc_imported_demand';
+  const fileInput = document.getElementById('salesFile');
+  const importBtn = document.getElementById('importBtn');
+  const resetBtn = document.getElementById('importResetBtn');
+  const ignoreChk = document.getElementById('ignoreCancelled');
+  const mappingEl = document.getElementById('importMapping');
+  const statusEl = document.getElementById('importStatus');
+  const periodEl = document.getElementById('periodLabel');
+  const srcEl = document.getElementById('srcLabel');
+  const orig = {
+    demand: JSON.parse(JSON.stringify(demand)), monthly: monthlyDeliveries,
+    period: periodEl.textContent, src: srcEl.textContent
+  };
+  let layout = null;
+  let fileName = '';
+
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const fmtD = t => new Date(t).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+  const nfmt = n => n.toLocaleString('pt-BR');
+
+  function renderDemandGrid() {
+    const max = Math.max(0.01, ...days.flatMap(d => demand[d]));
+    let h = '<thead><tr><th class="hourlbl">Hora</th>' + days.map(d => `<th>${d}</th>`).join('') + '</tr></thead><tbody>';
+    hoursLabels.forEach((lbl, i) => {
+      h += `<tr><td class="hourlbl">${lbl}</td>`;
+      days.forEach(d => {
+        const v = demand[d][i];
+        const a = Math.min(1, v / max);
+        h += `<td class="dcell" style="background:rgba(217,84,47,${(0.06 + a * 0.94).toFixed(2)});color:${a > 0.5 ? '#fff' : '#7a1f00'}">${v.toFixed(1).replace('.', ',')}</td>`;
+      });
+      h += '</tr>';
+    });
+    h += '<tr class="dtotal"><td class="hourlbl">Total/dia</td>' +
+      days.map(d => `<td>${demand[d].reduce((a, b) => a + b, 0).toFixed(1).replace('.', ',')}</td>`).join('') + '</tr></tbody>';
+    document.getElementById('demandGrid').innerHTML = h;
+  }
+
+  function recomputeAll() {
+    computeGlobalBreakeven();
+    compute();
+    computeGoalSchedule();
+    myStaffing = buildDefaultMyStaffing();
+    computeMySchedule();
+    renderHistory();
+  }
+
+  function applyData(d, monthly, periodText, srcText, recompute) {
+    demand = d;
+    monthlyDeliveries = monthly;
+    weeklyDeliveriesReal = monthly / 4.33;
+    periodEl.textContent = periodText;
+    srcEl.textContent = srcText;
+    renderDemandGrid();
+    if (recompute) recomputeAll();
+  }
+
+  function colSelect(id, label, selected, optional) {
+    const opts = (optional ? '<option value="">(nenhuma)</option>' : '') +
+      layout.header.map((h, i) => `<option value="${i}"${selected === i ? ' selected' : ''}>${esc(h || 'Coluna ' + (i + 1))}</option>`).join('');
+    return `<div class="field"><label for="${id}">${label}</label><select id="${id}">${opts}</select></div>`;
+  }
+
+  function renderMapping() {
+    mappingEl.innerHTML = '<div class="map-grid">' +
+      colSelect('mapDate', 'Coluna da data (ou data + hora)', layout.dateCol, true) +
+      colSelect('mapTime', 'Coluna da hora (só se separada da data)', layout.timeCol, true) +
+      colSelect('mapStatus', 'Coluna de status (para ignorar cancelados)', layout.statusCol, true) +
+      '</div>';
+    ['mapDate', 'mapTime', 'mapStatus'].forEach(id => document.getElementById(id).addEventListener('change', () => {
+      const v = x => { const e = document.getElementById(x).value; return e === '' ? null : parseInt(e, 10); };
+      layout.dateCol = v('mapDate'); layout.timeCol = v('mapTime'); layout.statusCol = v('mapStatus');
+      runAggregation();
+    }));
+  }
+
+  function runAggregation() {
+    if (!layout) return;
+    if (layout.dateCol === null) {
+      statusEl.innerHTML = '<div class="goal-status bad">Não encontrei a coluna de data/hora dos pedidos. Escolha-a na lista acima.</div>';
+      return;
+    }
+    const r = aggregateOrders(layout.rows, layout, ignoreChk.checked, days, 11, hoursLabels.length);
+    if (!r) {
+      statusEl.innerHTML = '<div class="goal-status bad">Nenhum pedido com data e hora válidas com essas colunas. Confira as colunas escolhidas acima (a hora precisa estar na planilha, no mesmo campo da data ou em outra coluna).</div>';
+      return;
+    }
+    const period = `${fileName ? esc(fileName) + ' · ' : ''}${fmtD(r.minT)}–${fmtD(r.maxT)}`;
+    const periodText = `planilha importada: ${nfmt(r.used + r.outside)} pedidos em ${r.periodDays} dias (${fmtD(r.minT)}–${fmtD(r.maxT)})`;
+    applyData(r.demand, r.monthly, periodText, `planilha importada, ${fmtD(r.minT)}–${fmtD(r.maxT)}`, true);
+    resetBtn.hidden = false;
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({ demand: r.demand, monthly: r.monthly, period: periodText, src: `planilha importada, ${fmtD(r.minT)}–${fmtD(r.maxT)}` }));
+    } catch (e) {}
+    const warns = [];
+    if (r.periodDays < 14) warns.push(`o período tem só ${r.periodDays} dias, então as médias por dia da semana ficam pouco confiáveis (o ideal é 2 a 3 meses)`);
+    if (r.outside > 0) warns.push(`${nfmt(r.outside)} pedido(s) chegaram fora de 11h–22h59 e não aparecem nas grades (entram só no custo variável)`);
+    if (r.noDate > 0) warns.push(`${nfmt(r.noDate)} linha(s) sem data/hora legível foram ignoradas`);
+    if (r.cancelled > 0) warns.push(`${nfmt(r.cancelled)} pedido(s) cancelado(s) foram ignorados`);
+    statusEl.innerHTML = `<div class="goal-status ok">✅ ${period}: ${nfmt(r.used + r.outside)} pedidos em ${r.periodDays} dias · média de ${(((r.used + r.outside) / r.periodDays)).toFixed(1).replace('.', ',')} pedidos/dia · ~${nfmt(r.monthly)} pedidos/mês. Escala, custo e metas abaixo foram recalculados com esses dados. Sua grade editável voltou para a escala calculada (as escalas salvas continuam no histórico).</div>` +
+      (warns.length ? `<div class="goal-status import-warn" style="font-weight:500">⚠️ ${warns.join('; ')}.</div>` : '');
+  }
+
+  async function loadXlsx() {
+    if (window.XLSX) return;
+    await new Promise((res, rej) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      sc.onload = res;
+      sc.onerror = () => rej(new Error('Não consegui carregar o leitor de Excel (precisa de internet). Salve a planilha como CSV e tente de novo.'));
+      document.head.appendChild(sc);
+    });
+  }
+
+  async function handleFile(file) {
+    statusEl.innerHTML = '<div class="goal-status tight">Lendo a planilha…</div>';
+    mappingEl.innerHTML = '';
+    try {
+      fileName = file.name;
+      let table;
+      const buf = await file.arrayBuffer();
+      if (/\.xlsx?$/i.test(file.name)) {
+        await loadXlsx();
+        const wb = XLSX.read(buf, { type: 'array' });
+        let best = [];
+        wb.SheetNames.forEach(n => {
+          const rows = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' });
+          if (rows.length > best.length) best = rows;
+        });
+        table = best.filter(r => r.some(c => String(c).trim() !== ''));
+      } else {
+        let text = new TextDecoder('utf-8').decode(buf);
+        if (text.includes('�')) text = new TextDecoder('windows-1252').decode(buf);
+        table = parseCSV(text.replace(/^﻿/, ''));
+      }
+      if (table.length < 2) throw new Error('A planilha parece vazia.');
+      layout = detectLayout(table);
+      renderMapping();
+      runAggregation();
+    } catch (e) {
+      layout = null;
+      statusEl.innerHTML = `<div class="goal-status bad">${esc(e.message || e)}</div>`;
+    }
+  }
+
+  importBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files[0];
+    if (f) handleFile(f);
+    fileInput.value = '';
+  });
+  ignoreChk.addEventListener('change', runAggregation);
+  resetBtn.addEventListener('click', () => {
+    applyData(JSON.parse(JSON.stringify(orig.demand)), orig.monthly, orig.period, orig.src, true);
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    layout = null;
+    mappingEl.innerHTML = '';
+    statusEl.innerHTML = '<div class="goal-status ok">Voltou aos dados originais (20/05–17/08/2026).</div>';
+    resetBtn.hidden = true;
+  });
+
+  // Restaura a última planilha importada (as médias, não a planilha)
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) {}
+  if (saved && saved.demand && saved.monthly) {
+    applyData(saved.demand, saved.monthly, saved.period, saved.src, false);
+    resetBtn.hidden = false;
+    statusEl.innerHTML = '<div class="goal-status ok">Usando a última planilha importada neste navegador. Carregue outra para substituir.</div>';
+  } else {
+    renderDemandGrid();
+  }
+})();
 
 computeGlobalBreakeven();
 compute();
