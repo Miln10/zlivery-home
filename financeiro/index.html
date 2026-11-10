@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#e07b1a">
+<meta name="robots" content="noindex, nofollow">
+<title>Financeiro — Cali Burritos</title>
+<style>
+  :root{--orange:#e07b1a;--orange-dark:#b5620f;--bg:#f4f6f8;--card:#fff;--text:#1c2733;--muted:#6b7785;--line:#e3e8ee;--green:#1f9d55;--red:#c0392b;--blue:#185FA5;--warn:#fff4e5}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:15px}
+  header{background:linear-gradient(135deg,var(--orange),var(--orange-dark));color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header h1{margin:0;font-size:18px;flex:1}
+  header a,header button{color:#fff;background:rgba(255,255,255,.18);border:0;border-radius:8px;padding:7px 12px;font-size:13px;text-decoration:none;cursor:pointer}
+  main{max-width:1200px;margin:0 auto;padding:16px}
+  .login{max-width:360px;margin:60px auto;background:var(--card);padding:24px;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+  .login h2{margin:0 0 4px}.login p{margin:0 0 16px;color:var(--muted);font-size:13px}
+  input,select,button.pri{font:inherit}
+  input,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--text)}
+  label{display:block;margin:10px 0 4px;font-size:13px;color:var(--muted)}
+  button.pri{margin-top:14px;width:100%;padding:11px;border:0;border-radius:8px;background:var(--orange);color:#fff;font-weight:600;cursor:pointer}
+  button.pri:disabled{opacity:.5}
+  .msg{margin-top:10px;font-size:13px;color:var(--red)}
+  .tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto}
+  .tab{padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;white-space:nowrap;font-size:14px}
+  .tab.on{background:var(--orange);border-color:var(--orange);color:#fff}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+  .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 1px 6px rgba(0,0,0,.06)}
+  .card h3{margin:0 0 2px;font-size:15px}.card .sub{color:var(--muted);font-size:12px;margin-bottom:8px}
+  .kv{display:flex;justify-content:space-between;font-size:13px;padding:2px 0}
+  .in{color:var(--green)}.out{color:var(--red)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:#eef2f6}
+  .pill.warn{background:var(--warn);color:var(--orange-dark)}.pill.ok{background:#e4f5ea;color:var(--green)}
+  h2.sec{font-size:15px;margin:20px 0 8px}
+  .wrap{overflow-x:auto;background:var(--card);border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.06)}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  th{background:#fafbfc;color:var(--muted);font-weight:600;position:sticky;top:0}
+  td.desc{white-space:normal;min-width:240px;max-width:420px}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .cob td.c{text-align:center}.cob .tem{background:#e4f5ea;color:var(--green)}.cob .falta{background:#fdecea;color:var(--red)}
+  .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px;align-items:end}
+  .filters label{margin:0 0 3px}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0;padding:10px;background:var(--warn);border-radius:10px}
+  .bar select{flex:1;min-width:220px}.bar button{padding:9px 14px;border:0;border-radius:8px;background:var(--orange);color:#fff;font-weight:600;cursor:pointer}
+  .pager{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:10px 0;font-size:13px;color:var(--muted)}
+  .pager button{padding:7px 12px;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer}
+  .hide{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>💵 Financeiro — Cali Burritos</h1>
+  <span id="quem" style="font-size:12px;opacity:.9"></span>
+  <a href="../">← Zlivery</a>
+  <button id="sair" class="hide">Sair</button>
+</header>
+<main>
+  <section id="login" class="login">
+    <h2>Acesso restrito</h2>
+    <p>Somente o administrador vê o financeiro.</p>
+    <label>E-mail</label><input id="email" type="email" autocomplete="username">
+    <label>Senha</label><input id="senha" type="password" autocomplete="current-password">
+    <button class="pri" id="entrar">Entrar</button>
+    <div class="msg" id="loginMsg"></div>
+  </section>
+
+  <section id="app" class="hide">
+    <div class="tabs">
+      <div class="tab on" data-t="geral">Visão geral</div>
+      <div class="tab" data-t="lanc">Lançamentos</div>
+      <div class="tab" data-t="decl">Declarações</div>
+    </div>
+
+    <div id="t-geral">
+      <div class="grid" id="contas"></div>
+      <h2 class="sec">Cobertura dos extratos (lançamentos por mês)</h2>
+      <div class="wrap"><table class="cob" id="cob"></table></div>
+      <h2 class="sec">Declarações do Telegram</h2>
+      <div id="declResumo"></div>
+    </div>
+
+    <div id="t-lanc" class="hide">
+      <div class="filters">
+        <div><label>Conta</label><select id="fConta"></select></div>
+        <div><label>De</label><input type="date" id="fDe"></div>
+        <div><label>Até</label><input type="date" id="fAte"></div>
+        <div><label>Busca (texto ou valor)</label><input id="fQ" placeholder="ex.: Jorge ou 45,00"></div>
+        <div><label>&nbsp;</label><label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="fSem" style="width:auto"> só sem classificação</label></div>
+        <div><label>&nbsp;</label><button class="pri" id="filtrar" style="margin:0">Filtrar</button></div>
+      </div>
+      <div class="bar hide" id="bar">
+        <b id="selN"></b>
+        <select id="cls"></select>
+        <button id="aplicar">Classificar selecionados</button>
+      </div>
+      <div class="pager"><span id="info"></span><span><button id="ant">‹ Anterior</button> <button id="prox">Próxima ›</button></span></div>
+      <div class="wrap"><table id="lanc"></table></div>
+    </div>
+
+    <div id="t-decl" class="hide"><div class="wrap"><table id="decl"></table></div></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SB_URL = "https://cfyfvmeggspahovblitr.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmeWZ2bWVnZ3NwYWhvdmJsaXRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3MzA2MTYsImV4cCI6MjEwMDMwNjYxNn0.DUJ97JnPRiK2or0Ii0Lpw2FfrSUXWPj7706mf6vULsY";
+const FN = SB_URL + "/functions/v1/financeiro-api";
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const brl = v => Number(v).toLocaleString("pt-BR", {style:"currency", currency:"BRL"});
+const dbr = d => d ? d.split("-").reverse().join("/") : "";
+let plano = [], contas = [], pagina = 0, total = 0, sel = new Set();
+const LIM = 100;
+
+async function api(acao, p = {}) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) throw new Error("sem_sessao");
+  const r = await fetch(FN, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token, apikey: SB_KEY }, body: JSON.stringify({ acao, ...p }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.erro || "erro"); e.status = r.status; throw e; }
+  return j;
+}
+
+async function entrar() {
+  $("loginMsg").textContent = ""; $("entrar").disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("senha").value });
+  $("entrar").disabled = false;
+  if (error) { $("loginMsg").textContent = "E-mail ou senha incorretos."; return; }
+  $("senha").value = "";
+  iniciar();
+}
+
+async function iniciar() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { $("login").classList.remove("hide"); $("app").classList.add("hide"); $("sair").classList.add("hide"); return; }
+  try {
+    const r = await api("resumo");
+    $("login").classList.add("hide"); $("app").classList.remove("hide"); $("sair").classList.remove("hide");
+    $("quem").textContent = session.user.email;
+    contas = r.contas; desenharGeral(r);
+    plano = (await api("plano")).plano; montarSelects();
+  } catch (e) {
+    if (e.status === 403) { await sb.auth.signOut(); $("loginMsg").textContent = "Esta conta não tem acesso ao financeiro (somente admin)."; }
+    else if (e.status === 401) { await sb.auth.signOut(); }
+    else $("loginMsg").textContent = "Não consegui carregar agora. Tente de novo.";
+    $("login").classList.remove("hide"); $("app").classList.add("hide"); $("sair").classList.add("hide");
+  }
+}
+
+function desenharGeral(r) {
+  $("contas").innerHTML = r.contas.map(c => `<div class="card"><h3>${esc(c.banco)} · ${esc(c.sigla)}</h3>
+    <div class="sub">${c.n ? dbr(c.de) + " a " + dbr(c.ate) : "sem extrato ainda"}</div>
+    <div class="kv"><span>Lançamentos</span><b>${c.n}</b></div>
+    <div class="kv"><span>Entradas</span><span class="in">${brl(c.entradas)}</span></div>
+    <div class="kv"><span>Saídas</span><span class="out">${brl(c.saidas)}</span></div>
+    <div class="kv"><span>Sem classificação</span><span class="pill ${c.sem_class ? "warn" : "ok"}">${c.sem_class}</span></div></div>`).join("");
+  const meses = []; const hoje = new Date(); let ini = r.cobertura.length ? r.cobertura[0].mes : null;
+  if (ini) { let [y, m] = ini.split("-").map(Number); while (y < hoje.getFullYear() || (y === hoje.getFullYear() && m <= hoje.getMonth() + 1)) { meses.push(`${y}-${String(m).padStart(2, "0")}`); m++; if (m > 12) { m = 1; y++; } } }
+  const mapa = {}; r.cobertura.forEach(x => mapa[x.conta_id + "|" + x.mes] = x);
+  $("cob").innerHTML = "<tr><th>Conta</th>" + meses.map(m => `<th class="num">${m.slice(5)}/${m.slice(2, 4)}</th>`).join("") + "</tr>" +
+    r.contas.map(c => `<tr><td>${esc(c.banco)} · ${esc(c.sigla)}</td>` + meses.map(m => { const x = mapa[c.conta_id + "|" + m]; return x ? `<td class="c tem" title="${x.dias} dia(s) com movimento">${x.n}</td>` : `<td class="c falta">falta</td>`; }).join("") + "</tr>").join("");
+  const nomes = { rascunho: "em andamento", aguardando_extrato: "aguardando extrato", sugerida: "sugerida", pareada: "pareada", ambigua: "ambígua", sem_par: "sem par (dinheiro)", cancelada: "cancelada" };
+  $("declResumo").innerHTML = r.declaracoes.length ? r.declaracoes.map(d => `<span class="pill" style="margin:0 6px 6px 0">${esc(nomes[d.status] || d.status)}: <b>${d.n}</b></span>`).join("") : '<span class="pill">nenhuma ainda</span>';
+}
+
+function montarSelects() {
+  $("fConta").innerHTML = '<option value="">Todas as contas</option>' + contas.map(c => `<option value="${c.conta_id}">${esc(c.banco)} · ${esc(c.sigla)}</option>`).join("");
+  $("cls").innerHTML = '<option value="">Escolha a conta do plano…</option>' + plano.filter(p => !p.fora_dre).concat(plano.filter(p => p.fora_dre)).map(p => `<option value="${esc(p.codigo)}">${esc(p.codigo)} ${esc(p.nome)}${p.fora_dre ? " (fora do DRE)" : ""}</option>`).join("");
+}
+
+async function carregarLanc() {
+  const p = { conta_id: $("fConta").value || null, de: $("fDe").value || null, ate: $("fAte").value || null, q: $("fQ").value, so_sem: $("fSem").checked, limite: LIM, offset: pagina * LIM };
+  const r = await api("lancamentos", p); total = r.total;
+  const nm = Object.fromEntries(plano.map(x => [x.codigo, x.nome]));
+  $("lanc").innerHTML = "<tr><th></th><th>Data</th><th>Hora</th><th>Conta</th><th>Descrição</th><th class='num'>Valor</th><th>Classificação</th></tr>" + r.linhas.map(l =>
+    `<tr><td><input type="checkbox" data-id="${l.id}" ${sel.has(l.id) ? "checked" : ""} style="width:auto"></td><td>${dbr(l.data)}</td><td>${esc((l.hora || "").slice(0, 5))}</td><td>${esc(l.banco)} · ${esc(l.sigla)}</td>
+     <td class="desc">${esc(l.descricao)}</td><td class="num ${l.valor < 0 ? "out" : "in"}">${brl(l.valor)}</td>
+     <td>${l.conta_codigo ? `<span class="pill ${l.class_status === "confirmado" ? "ok" : ""}">${esc(l.conta_codigo)} ${esc(nm[l.conta_codigo] || "")}</span>` : '<span class="pill warn">—</span>'}</td></tr>`).join("");
+  const ini = total ? pagina * LIM + 1 : 0, fim = Math.min((pagina + 1) * LIM, total);
+  $("info").textContent = `${ini}–${fim} de ${total} · soma ${brl(r.soma)}`;
+  $("ant").disabled = pagina === 0; $("prox").disabled = fim >= total;
+  $("lanc").querySelectorAll("input[data-id]").forEach(i => i.onchange = () => { i.checked ? sel.add(i.dataset.id) : sel.delete(i.dataset.id); barra(); });
+  barra();
+}
+function barra() { $("bar").classList.toggle("hide", !sel.size); $("selN").textContent = sel.size + " selecionado(s)"; }
+
+async function carregarDecl() {
+  const r = await api("declaracoes");
+  $("decl").innerHTML = "<tr><th>Quando</th><th>Origem</th><th class='num'>Valor</th><th>Favorecido</th><th>Empresa · conta</th><th>Meio</th><th>Classificação</th><th>Situação</th></tr>" + (r.linhas.length ? r.linhas.map(d =>
+    `<tr><td>${esc((d.criado_em || "").slice(0, 16).replace("T", " "))}</td><td>${esc(d.origem)}</td><td class="num">${d.valor != null ? brl(d.valor) : "?"}${d.quantidade > 1 ? " ×" + d.quantidade : ""}</td><td>${esc(d.favorecido || "")}</td>
+     <td>${esc(d.sigla || "?")} ${d.banco ? "· " + esc(d.banco) : ""}</td><td>${esc(d.meio || "?")}</td><td>${esc(d.conta_codigo || "—")} ${esc(d.conta_nome || "")}</td><td><span class="pill">${esc(d.status)}</span></td></tr>`).join("") : "<tr><td colspan=8>Nenhuma declaração ainda.</td></tr>");
+}
+
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === t));
+  ["geral", "lanc", "decl"].forEach(k => $("t-" + k).classList.toggle("hide", k !== t.dataset.t));
+  if (t.dataset.t === "lanc") carregarLanc(); if (t.dataset.t === "decl") carregarDecl();
+});
+$("entrar").onclick = entrar; $("senha").onkeydown = e => { if (e.key === "Enter") entrar(); };
+$("sair").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+$("filtrar").onclick = () => { pagina = 0; carregarLanc(); };
+$("ant").onclick = () => { pagina--; carregarLanc(); }; $("prox").onclick = () => { pagina++; carregarLanc(); };
+$("aplicar").onclick = async () => {
+  const cod = $("cls").value; if (!cod) { alert("Escolha a conta do plano."); return; }
+  if (!confirm(`Classificar ${sel.size} lançamento(s) como ${cod}?`)) return;
+  try { await api("classificar", { ids: [...sel], conta_codigo: cod }); sel.clear(); await carregarLanc(); const r = await api("resumo"); contas = r.contas; desenharGeral(r); }
+  catch (e) { alert("Não consegui classificar (nada foi alterado)."); }
+};
+iniciar();
+</script>
+</body>
+</html>
