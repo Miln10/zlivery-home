@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>App Repost · Zlivery</title>
+<style>
+/* Painel interno do App Repost. Acesso só do administrador: o servidor confere o login antes de entregar qualquer dado. */
+:root{
+  --plane:#f4f5f7; --surface:#ffffff; --ink:#14171c; --ink2:#5a6270; --line:#e3e6ea; --accent:#2a78d6; --accent-ink:#fff;
+  --ok:#0a7a35; --ok-bg:#e2f4e8; --warn:#8a5a00; --warn-bg:#fcefd0; --off:#5a6270; --off-bg:#eceef2; --bad:#b3261e; --bad-bg:#fbe4e2;
+  --bar:#2a78d6; --bar-hi:#eb6834; --font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --plane:#0e1013; --surface:#181b20; --ink:#eceef1; --ink2:#a4acb8; --line:#2a2f37; --accent:#4a93ea;
+  --ok:#53c27a; --ok-bg:#15301f; --warn:#e6b450; --warn-bg:#3a2e10; --off:#a4acb8; --off-bg:#242830; --bad:#f28b82; --bad-bg:#3a1c1b;
+  --bar:#4a93ea; --bar-hi:#e8763f; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--plane);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;
+  padding:16px max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left))}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:22px;margin:0;font-weight:700;letter-spacing:-.01em}
+header .sp{flex:1}
+a.back,button.ghost{font:inherit;font-size:14px;color:var(--accent);background:none;border:1px solid var(--line);padding:7px 12px;border-radius:10px;cursor:pointer;text-decoration:none}
+.muted{color:var(--ink2);font-size:13px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.tile .l{font-size:12px;color:var(--ink2);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.tile .v{font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.tile .s{font-size:13px;color:var(--ink2)}
+.prog{height:10px;border-radius:6px;background:var(--off-bg);overflow:hidden;margin:8px 0 2px}
+.prog i{display:block;height:100%;background:var(--bar);border-radius:6px}
+.prog.hot i{background:var(--bar-hi)}
+section{display:flex;flex-direction:column;gap:12px}
+h2{font-size:17px;margin:0;font-weight:700}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.camps{display:grid;gap:12px}
+.camp{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;grid-template-columns:96px 1fr;gap:14px;min-width:0}
+.camp img,.ph{width:96px;height:96px;object-fit:cover;border-radius:10px;background:var(--off-bg)}
+.camp .main{min-width:0;display:flex;flex-direction:column;gap:8px}
+.camp .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.camp .nm{font-weight:700}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pill.ativa,.pill.ok,.pill.ativo,.pill.agendado,.pill.publicado{background:var(--ok-bg);color:var(--ok)}
+.pill.pausada,.pill.pausado,.pill.manual,.pill.aprovado,.pill.pendente,.pill.proposto{background:var(--warn-bg);color:var(--warn)}
+.pill.encerrada,.pill.encerrado,.pill.off{background:var(--off-bg);color:var(--off)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px 14px}
+.kv div{min-width:0}.kv b{display:block;font-size:16px;font-variant-numeric:tabular-nums}.kv span{font-size:12px;color:var(--ink2)}
+details{margin-top:2px}summary{cursor:pointer;font-size:13px;color:var(--accent);font-weight:600}
+.ads{display:grid;gap:8px;margin-top:8px}
+.ad{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:10px;min-width:0}
+.ad img,.ad .ph{width:56px;height:56px;border-radius:8px}
+.ad .t{font-size:13px;min-width:0}.ad .t b{font-weight:600}
+@media (max-width:560px){.camp{grid-template-columns:72px 1fr}.camp img,.camp .ph{width:72px;height:72px}}
+.days{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:6px;align-items:end;height:150px;border-bottom:1px solid var(--line);margin-top:6px}
+.days div{display:flex;flex-direction:column;justify-content:flex-end;height:100%;align-items:center;gap:4px;min-width:0}
+.days i{display:block;width:100%;background:var(--bar);border-radius:4px 4px 0 0;min-height:2px}
+.days small{font-size:11px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.dl{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:6px;font-size:11px;color:var(--ink2);text-align:center;margin-top:4px}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:12px;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+tr:last-child td{border-bottom:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.card img,.card .ph{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:0;background:var(--off-bg)}
+.card .b{padding:8px 10px;display:flex;flex-direction:column;gap:3px;font-size:13px;min-width:0}
+.card .b span{color:var(--ink2);font-size:12px}
+.notice{padding:12px 14px;border-radius:12px;background:var(--warn-bg);color:var(--warn);font-size:14px}
+.login{max-width:360px;margin:12vh auto 0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:10px}
+.login h1{margin:0;font-size:20px}.login label{font-size:13px;color:var(--ink2);font-weight:600}
+.login input{font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--plane);color:var(--ink);width:100%}
+.login .err{color:var(--bad);font-size:13px;min-height:18px}
+.gate{max-width:440px;margin:12vh auto;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
+.gate h1{margin:0}
+.btn{font:inherit;font-weight:700;background:var(--accent);color:var(--accent-ink);border:0;padding:11px 18px;border-radius:10px;cursor:pointer;text-decoration:none;display:inline-block}
+</style>
+</head>
+<body>
+<div id="app"><div class="gate"><h1>App Repost</h1><p class="muted">Carregando...</p></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+var ENTREGOU_URL='https://lgojqzwxxwtcnprmfayb.supabase.co';
+var ENTREGOU_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnb2pxend4eHd0Y25wcm1mYXliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxOTE0MzMsImV4cCI6MjA5MTc2NzQzM30.uxbpKQD0aPCzqxbWPvUuS4XxR-Og6vABR8EnlwAKL28';
+var READ_URL='https://abvwewwovcjxnxpvrewm.supabase.co/functions/v1/ig-dashboard-read';
+var APP=document.getElementById('app');
+var brl=function(n,d){return 'R$ '+Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:d==null?2:d,maximumFractionDigits:d==null?2:d})};
+var num=function(n){return Number(n||0).toLocaleString('pt-BR')};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+var quando=function(iso){if(!iso)return '—';var d=new Date(iso);return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'})};
+
+function gate(title,msg,btn){
+  APP.innerHTML='<div class="gate"><h1>'+esc(title)+'</h1><p class="muted">'+esc(msg)+'</p>'+(btn?'<a class="btn" href="'+btn[1]+'">'+esc(btn[0])+'</a>':'')+'</div>';
+}
+function loginForm(msg){
+  APP.innerHTML='<form class="login" id="lf"><h1>App Repost</h1><p class="muted" style="margin:0">Somente o administrador. Entre com o mesmo login do app Entregou.</p>'+
+    '<label for="em">E-mail</label><input id="em" type="email" autocomplete="username" required>'+
+    '<label for="pw">Senha</label><input id="pw" type="password" autocomplete="current-password" required>'+
+    '<div class="err" id="er">'+esc(msg||'')+'</div><button class="btn" id="go" type="submit">Entrar</button>'+
+    '<a class="back" href="../" style="text-align:center">← Voltar ao Zlivery</a></form>';
+  document.getElementById('lf').onsubmit=async function(ev){
+    ev.preventDefault();var er=document.getElementById('er');er.textContent='';document.getElementById('go').disabled=true;
+    try{var r=await client.auth.signInWithPassword({email:document.getElementById('em').value.trim(),password:document.getElementById('pw').value});
+      if(r.error){er.textContent='E-mail ou senha incorretos.';document.getElementById('go').disabled=false;return}
+      load();
+    }catch(e){er.textContent='Não consegui entrar agora. Tente de novo.';document.getElementById('go').disabled=false}
+  };
+}
+function thumb(src,alt){return src?'<img src="'+src+'" alt="'+esc(alt||'')+'" loading="lazy">':'<div class="ph" aria-hidden="true"></div>'}
+function pill(s){return '<span class="pill '+esc(String(s).toLowerCase())+'">'+esc(s)+'</span>'}
+
+function render(d){
+  var ads=d.ads||{}, ig=d.ig||{};
+  var mes=ads.mes||{gasto:0,diario:[]}, teto=ads.teto_mensal||1000;
+  var pctMes=Math.min(100,mes.gasto/teto*100);
+  var dias=mes.diario||[]; var maxDia=Math.max.apply(null,[1].concat(dias.map(function(x){return x[1]})));
+  var mediaDia=dias.length?mes.gasto/dias.length:0, proj=mediaDia*(mes.dias_no_mes||30);
+  var ativas=(ads.campanhas||[]).filter(function(c){return c.estado==='ativa'});
+  var R=ig.resumo||{};
+  var h='';
+  h+='<header><h1>App Repost</h1><span class="muted">Instagram: '+esc(ig.conta||'')+'</span><span class="sp"></span>'+
+     '<button class="ghost" id="reload">Atualizar</button><button class="ghost" id="sair">Sair</button><a class="back" href="../">← Voltar ao Zlivery</a></header>';
+  h+='<div class="tiles">'+
+    '<div class="tile"><div class="l">Gasto em '+esc(mes.ref||'o mês')+'</div><div class="v">'+brl(mes.gasto)+'</div>'+
+      '<div class="prog'+(pctMes>85?' hot':'')+'"><i style="width:'+pctMes+'%"></i></div><div class="s">teto de '+brl(teto,0)+' · projeção '+brl(proj,0)+'</div></div>'+
+    '<div class="tile"><div class="l">Orçamento por dia (ativas)</div><div class="v">'+brl(ads.orcamento_dia_ativo)+'</div><div class="s">'+ativas.length+' campanha(s) ativa(s)</div></div>'+
+    '<div class="tile"><div class="l">Investido desde jun/2025</div><div class="v">'+brl(ads.gasto_total,0)+'</div><div class="s">dados da Meta até '+esc((ads.dados_ate||'').split('-').reverse().join('/'))+'</div></div>'+
+    '<div class="tile"><div class="l">Publicação automática</div><div class="v">'+esc(R.publicacao||'—')+'</div><div class="s">próximo post: '+esc(R.proximo_post||'nenhum agendado')+'</div></div>'+
+  '</div>';
+  (ads.avisos||[]).forEach(function(a){h+='<div class="notice">'+esc(a)+'</div>'});
+
+  h+='<section><h2>Campanhas</h2><div class="camps">';
+  (ads.campanhas||[]).forEach(function(c){
+    h+='<div class="camp">'+thumb(c.thumb,c.nome)+'<div class="main"><div class="top"><span class="nm">'+esc(c.nome)+'</span>'+pill(c.estado)+'</div>'+
+      '<div class="muted">'+esc(c.objetivo)+' · região: '+esc(c.regiao)+(c.orcamento_dia?' · '+brl(c.orcamento_dia)+'/dia':'')+'</div>'+
+      '<div class="kv"><div><b>'+brl(c.gasto_total)+'</b><span>gasto total</span></div><div><b>'+brl(c.gasto_mes)+'</b><span>gasto no mês</span></div>'+
+      '<div><b>'+esc(c.resultado)+'</b><span>resultado total</span></div><div><b>'+brl(c.custo_por_resultado)+'</b><span>por resultado</span></div>'+
+      '<div><b>'+num(c.impressoes)+'</b><span>impressões</span></div></div>'+
+      '<details><summary>Ver '+(c.anuncios||[]).length+' anúncio(s) e posts</summary><div class="ads">'+
+      (c.anuncios||[]).map(function(a){return '<div class="ad">'+thumb(a.thumb,a.nome)+'<div class="t"><b>'+esc(a.nome)+'</b> '+pill(a.estado)+
+        '<br>'+brl(a.gasto)+' · '+esc(a.resultado)+' · '+brl(a.custo_por_resultado)+'/res.'+(a.ctr!=null?' · CTR '+String(a.ctr).replace('.',',')+'%':'')+'<br><span class="muted">'+num(a.impressoes)+' impressões · '+num(a.alcance)+' pessoas</span></div></div>'}).join('')+
+      '</div></details></div></div>';
+  });
+  h+='</div></section>';
+
+  h+='<section><h2>Quanto estamos gastando</h2><div class="panel"><div class="muted">Gasto por dia em '+esc(mes.ref||'')+' (R$)</div>'+
+     '<div class="days" style="--n:'+Math.max(1,dias.length)+'">'+dias.map(function(x){return '<div title="dia '+x[0]+': '+brl(x[1])+'"><small>'+Math.round(x[1])+'</small><i style="height:'+(x[1]/maxDia*100)+'%"></i></div>'}).join('')+'</div>'+
+     '<div class="dl" style="--n:'+Math.max(1,dias.length)+'">'+dias.map(function(x){return '<span>'+x[0]+'</span>'}).join('')+'</div>'+
+     '<p class="muted" style="margin:12px 0 0">Média de '+brl(mediaDia)+' por dia. Mantido nesse ritmo, o mês fecha em cerca de '+brl(proj,0)+(proj>teto?' (acima do teto de '+brl(teto,0)+')':' (dentro do teto de '+brl(teto,0)+')')+'.</p></div></section>';
+
+  h+='<section><h2>Onde estamos postando</h2><div class="panel tw"><table><thead><tr><th>Rede</th><th>Formato</th><th>Situação</th><th>Como funciona</th></tr></thead><tbody>'+
+     (ig.canais||[]).map(function(c){var lab={ok:'Ativo',pendente:'Pendente',manual:'Manual',off:'Desligado'}[c.estado]||c.estado;return '<tr><td><b>'+esc(c.rede)+'</b></td><td>'+esc(c.formato)+'</td><td><span class="pill '+esc(c.estado)+'">'+esc(lab)+'</span></td><td>'+esc(c.detalhe)+'</td></tr>'}).join('')+
+     '</tbody></table></div>'+
+     '<div class="tiles"><div class="tile"><div class="l">Posts em 7 dias</div><div class="v">'+num(R.posts_7d)+'</div></div><div class="tile"><div class="l">Posts em 30 dias</div><div class="v">'+num(R.posts_30d)+'</div></div>'+
+     '<div class="tile"><div class="l">Stories em 30 dias</div><div class="v">'+num(R.stories_30d)+'</div></div><div class="tile"><div class="l">Aguardando você</div><div class="v">'+num((R.aguardando_aprovacao||0)+(R.aguardando_autorizacao||0))+'</div><div class="s">'+num(R.aguardando_aprovacao)+' a aprovar · '+num(R.aguardando_autorizacao)+' a autorizar</div></div></div></section>';
+
+  function cards(list){return '<div class="grid">'+list.map(function(p){return '<div class="card">'+thumb(p.thumb,p.legenda)+'<div class="b"><div>'+pill(p.tipo)+' '+(p.estado&&p.estado!=='publicado'?pill(p.estado):'')+'</div><strong>'+esc(p.quando||p.data||'')+'</strong><span>'+esc(p.legenda||'')+'</span>'+
+    (p.curtidas!=null?'<span>♥ '+num(p.curtidas)+' curtidas · '+num(p.comentarios)+' coment.</span>':'')+(p.permalink&&p.estado==='publicado'?'<a class="muted" href="'+esc(p.permalink)+'" target="_blank" rel="noopener">abrir no Instagram</a>':'')+'</div></div>'}).join('')+'</div>'}
+  h+='<section><h2>Próximos posts e stories</h2>'+((ig.proximos||[]).length?cards(ig.proximos):'<div class="panel muted">Nada agendado.</div>')+'</section>';
+  h+='<section><h2>Publicados recentemente</h2>'+cards(ig.recentes||[])+'</section>';
+  h+='<p class="muted">Instagram atualizado em '+quando(ig.gerado_em)+' (automático, a cada 30 minutos). Anúncios atualizados em '+quando(ads.gerado_em)+' ('+esc(ads.fonte||'')+').</p>';
+  APP.innerHTML='<div class="wrap">'+h+'</div>';
+  document.getElementById('reload').onclick=function(){load(true)};
+  document.getElementById('sair').onclick=async function(){await client.auth.signOut();loginForm('')};
+}
+
+var client=null;
+async function load(){
+  try{
+    if(!client){client=window.supabase.createClient(ENTREGOU_URL,ENTREGOU_ANON,{auth:{persistSession:true,storageKey:'entregou_session',storage:window.localStorage,autoRefreshToken:true}})}
+    var s=(await client.auth.getSession()).data.session;
+    if(!s)return loginForm('');
+    var r=await fetch(READ_URL,{method:'POST',headers:{'Authorization':'Bearer '+s.access_token,'Content-Type':'application/json'},body:'{}'});
+    if(r.status===401){await client.auth.signOut();return loginForm('Sessão expirada. Entre de novo.')}
+    if(r.status===403){await client.auth.signOut();return loginForm('Esta conta não tem acesso (somente o administrador).')}
+    if(!r.ok)return gate('Não consegui carregar','Tente de novo em instantes.',['Voltar ao Zlivery','../']);
+    render(await r.json());
+  }catch(e){gate('Não consegui carregar','Verifique a conexão e tente de novo.',['Voltar ao Zlivery','../'])}
+}
+load();
+})();
+</script>
+</body>
+</html>
