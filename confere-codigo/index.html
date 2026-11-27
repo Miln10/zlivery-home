@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#4338ca">
+<meta name="robots" content="noindex, nofollow">
+<title>Confere o Código — Monitoramento</title>
+<style>
+  :root{--indigo:#4338ca;--indigo-dark:#312e81;--bg:#f4f6f8;--card:#fff;--text:#1c2733;--muted:#6b7785;--line:#e3e8ee;--green:#1f9d55;--blue:#185FA5;--warn:#fff4e5;--ifood:#ea1d2c;--food99:#ff6a00}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:15px}
+  header{background:linear-gradient(135deg,var(--indigo),var(--indigo-dark));color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header h1{margin:0;font-size:18px;flex:1}
+  header a,header button{color:#fff;background:rgba(255,255,255,.18);border:0;border-radius:8px;padding:7px 12px;font-size:13px;text-decoration:none;cursor:pointer}
+  main{max-width:1200px;margin:0 auto;padding:16px}
+  .login{max-width:360px;margin:60px auto;background:var(--card);padding:24px;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+  .login h2{margin:0 0 4px}.login p{margin:0 0 16px;color:var(--muted);font-size:13px}
+  input{font:inherit;width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--text)}
+  label{display:block;margin:10px 0 4px;font-size:13px;color:var(--muted)}
+  button.pri{margin-top:14px;width:100%;padding:11px;border:0;border-radius:8px;background:var(--indigo);color:#fff;font-weight:600;cursor:pointer}
+  button.pri:disabled{opacity:.5}
+  .msg{margin-top:10px;font-size:13px;color:#c0392b}
+  .tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto}
+  .tab{padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;white-space:nowrap;font-size:14px}
+  .tab.on{background:var(--indigo);border-color:var(--indigo);color:#fff}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 1px 6px rgba(0,0,0,.06)}
+  .card h3{margin:0 0 2px;font-size:13px;color:var(--muted);font-weight:600}
+  .card .big{font-size:26px;font-weight:700;margin:4px 0}
+  .card .sub{color:var(--muted);font-size:12px}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:#eef2f6;margin:0 4px 4px 0}
+  .pill.ifood{background:#ffe5e8;color:var(--ifood)}
+  .pill.f99{background:#fff0e0;color:var(--food99)}
+  h2.sec{font-size:15px;margin:22px 0 8px}
+  .wrap{overflow-x:auto;background:var(--card);border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.06)}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  th{background:#fafbfc;color:var(--muted);font-weight:600;position:sticky;top:0}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .filters{display:flex;gap:8px;margin-bottom:10px;align-items:end;flex-wrap:wrap}
+  .filters input{width:auto;min-width:220px}
+  .filters button{padding:9px 14px;border:0;border-radius:8px;background:var(--indigo);color:#fff;font-weight:600;cursor:pointer}
+  .hide{display:none!important}
+  .loading{color:var(--muted);font-size:13px;padding:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 Confere o Código — Monitoramento</h1>
+  <span id="quem" style="font-size:12px;opacity:.9"></span>
+  <a href="../">← Zlivery</a>
+  <button id="sair" class="hide">Sair</button>
+</header>
+<main>
+  <section id="login" class="login">
+    <h2>Acesso restrito</h2>
+    <p>Somente o administrador vê este painel.</p>
+    <label>E-mail</label><input id="email" type="email" autocomplete="username">
+    <label>Senha</label><input id="senha" type="password" autocomplete="current-password">
+    <button class="pri" id="entrar">Entrar</button>
+    <div class="msg" id="loginMsg"></div>
+  </section>
+
+  <section id="app" class="hide">
+    <div class="tabs">
+      <div class="tab on" data-t="geral">Visão geral</div>
+      <div class="tab" data-t="diaria">Atividade diária</div>
+      <div class="tab" data-t="leads">Leads</div>
+    </div>
+
+    <div id="t-geral">
+      <div class="grid" id="cardsGeral"></div>
+      <h2 class="sec">📦 APK (app Android)</h2>
+      <div class="grid" id="cardsApk"><div class="loading">Carregando do GitHub…</div></div>
+      <h2 class="sec">Últimas leituras</h2>
+      <div class="wrap"><table id="recentes"><tr><td class="loading">Carregando…</td></tr></table></div>
+    </div>
+
+    <div id="t-diaria" class="hide">
+      <h2 class="sec">Notas lidas por dia (últimos 30 dias)</h2>
+      <div class="wrap"><table id="diaria"></table></div>
+    </div>
+
+    <div id="t-leads" class="hide">
+      <div class="filters">
+        <div><label>Buscar (nome ou telefone)</label><input id="fQ" placeholder="ex.: Marcelo ou 2199..."></div>
+        <div><label>&nbsp;</label><button id="filtrarLeads">Filtrar</button></div>
+      </div>
+      <div class="wrap"><table id="leads"></table></div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SB_URL = "https://lgojqzwxxwtcnprmfayb.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnb2pxend4eHd0Y25wcm1mYXliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxOTE0MzMsImV4cCI6MjA5MTc2NzQzM30.uxbpKQD0aPCzqxbWPvUuS4XxR-Og6vABR8EnlwAKL28";
+const FN = SB_URL + "/functions/v1/confere-codigo-admin-stats";
+const GH_REPO = "Miln10/confere-codigo-app";
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const dbr = iso => iso ? new Date(iso).toLocaleString("pt-BR", {timeZone:"America/Sao_Paulo"}) : "—";
+const platLabel = p => p === "ifood" ? '<span class="pill ifood">iFood</span>' : p === "99food" ? '<span class="pill f99">99Food</span>' : esc(p || "—");
+
+async function api(acao, p = {}) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) throw new Error("sem_sessao");
+  const r = await fetch(FN, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token, apikey: SB_KEY }, body: JSON.stringify({ acao, ...p }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.erro || "erro"); e.status = r.status; throw e; }
+  return j;
+}
+
+async function entrar() {
+  $("loginMsg").textContent = ""; $("entrar").disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("senha").value });
+  $("entrar").disabled = false;
+  if (error) { $("loginMsg").textContent = "E-mail ou senha incorretos."; return; }
+  $("senha").value = "";
+  iniciar();
+}
+
+async function iniciar() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { $("login").classList.remove("hide"); $("app").classList.add("hide"); $("sair").classList.add("hide"); return; }
+  try {
+    await carregarGeral();
+    $("login").classList.add("hide"); $("app").classList.remove("hide"); $("sair").classList.remove("hide");
+    $("quem").textContent = session.user.email;
+    carregarApk();
+    carregarRecentes();
+  } catch (e) {
+    if (e.status === 403) { await sb.auth.signOut(); $("loginMsg").textContent = "Esta conta não tem acesso a este painel (somente admin)."; }
+    else if (e.status === 401) { await sb.auth.signOut(); }
+    else $("loginMsg").textContent = "Não consegui carregar agora. Tente de novo.";
+    $("login").classList.remove("hide"); $("app").classList.add("hide"); $("sair").classList.add("hide");
+  }
+}
+
+async function carregarGeral() {
+  const r = await api("overview");
+  const plats = Object.entries(r.byPlatform || {}).map(([k, v]) => `${platLabel(k)} <b>${v}</b>`).join(" · ") || "sem dados";
+  $("cardsGeral").innerHTML = `
+    <div class="card"><h3>Leads cadastrados</h3><div class="big">${r.totalLeads}</div><div class="sub">+${r.leadsHoje} hoje · +${r.leads7d} em 7d · +${r.leads30d} em 30d</div></div>
+    <div class="card"><h3>Notas lidas (total)</h3><div class="big">${r.totalScans}</div><div class="sub">${plats}</div></div>
+    <div class="card"><h3>Hoje</h3><div class="big">${r.scansHoje}</div><div class="sub">notas lidas</div></div>
+    <div class="card"><h3>Últimos 7 dias</h3><div class="big">${r.scans7d}</div><div class="sub">notas lidas</div></div>
+    <div class="card"><h3>Últimos 30 dias</h3><div class="big">${r.scans30d}</div><div class="sub">notas lidas</div></div>`;
+}
+
+async function carregarApk() {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GH_REPO}/releases`);
+    const releases = await res.json();
+    if (!Array.isArray(releases)) throw new Error("sem releases");
+    let totalDownloads = 0;
+    const porVersao = releases.map(rel => {
+      const n = (rel.assets || []).reduce((a, as) => a + (as.download_count || 0), 0);
+      totalDownloads += n;
+      return { tag: rel.tag_name, nome: rel.name, n, publicado: rel.published_at };
+    });
+    $("cardsApk").innerHTML = `
+      <div class="card"><h3>Downloads (todas as versões)</h3><div class="big">${totalDownloads}</div><div class="sub">contagem do GitHub — não identifica quem baixou</div></div>` +
+      porVersao.map(v => `<div class="card"><h3>${esc(v.tag)}</h3><div class="big">${v.n}</div><div class="sub">${esc(v.nome || "")} · publicado ${dbr(v.publicado)}</div></div>`).join("");
+  } catch (e) {
+    $("cardsApk").innerHTML = '<div class="card"><h3>Downloads</h3><div class="sub">Não consegui consultar o GitHub agora.</div></div>';
+  }
+}
+
+async function carregarRecentes() {
+  const r = await api("recentes", { limite: 50 });
+  $("recentes").innerHTML = "<tr><th>Quando</th><th>Lead</th><th>Telefone</th><th>Plataforma</th><th>Loja</th><th>Bairro</th><th>Pedido</th></tr>" +
+    (r.linhas.length ? r.linhas.map(l => `<tr><td>${dbr(l.created_at)}</td><td>${esc(l.lead?.name || "—")}</td><td>${esc(l.lead?.phone || "—")}</td><td>${platLabel(l.platform)}</td><td>${esc(l.store_name || "—")}</td><td>${esc(l.neighborhood || "—")}</td><td>${esc(l.order_number || "—")}</td></tr>`).join("") : "<tr><td colspan=7>Nenhuma leitura ainda.</td></tr>");
+}
+
+async function carregarDiaria() {
+  const r = await api("daily", { dias: 30 });
+  $("diaria").innerHTML = "<tr><th>Dia</th><th class='num'>iFood</th><th class='num'>99Food</th><th class='num'>Total</th></tr>" +
+    (r.dias.length ? r.dias.map(d => `<tr><td>${esc(d.date.split("-").reverse().join("/"))}</td><td class="num">${d.byPlatform.ifood || 0}</td><td class="num">${d.byPlatform["99food"] || 0}</td><td class="num"><b>${d.total}</b></td></tr>`).join("") : "<tr><td colspan=4>Sem atividade no período.</td></tr>");
+}
+
+async function carregarLeads() {
+  const r = await api("leads", { q: $("fQ").value.trim(), limite: 300 });
+  $("leads").innerHTML = "<tr><th>Nome</th><th>Telefone</th><th>Última plataforma</th><th class='num'>Usos</th><th class='num'>Notas lidas</th><th>Cadastrado</th><th>Última vez visto</th></tr>" +
+    (r.linhas.length ? r.linhas.map(l => `<tr><td>${esc(l.name || "—")}</td><td>${esc(l.phone || "—")}</td><td>${platLabel(l.platform_last_used)}</td><td class="num">${l.uses_count ?? 0}</td><td class="num"><b>${l.totalScans}</b></td><td>${dbr(l.created_at)}</td><td>${dbr(l.last_seen_at)}</td></tr>`).join("") : "<tr><td colspan=7>Nenhum lead encontrado.</td></tr>");
+}
+
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === t));
+  ["geral", "diaria", "leads"].forEach(k => $("t-" + k).classList.toggle("hide", k !== t.dataset.t));
+  if (t.dataset.t === "diaria") carregarDiaria();
+  if (t.dataset.t === "leads") carregarLeads();
+});
+$("entrar").onclick = entrar; $("senha").onkeydown = e => { if (e.key === "Enter") entrar(); };
+$("sair").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+$("filtrarLeads").onclick = carregarLeads;
+iniciar();
+</script>
+</body>
+</html>
