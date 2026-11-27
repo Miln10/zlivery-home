@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#184F95">
+<meta name="robots" content="noindex, nofollow">
+<title>Raio-x iFood — Descontos e Cardápio</title>
+<link rel="icon" type="image/png" sizes="192x192" href="../icon-192.png">
+<style>
+:root{
+  --bg:#F4F5F3; --surface:#FCFCFB; --ink:#0B0B0B; --ink2:#52514E; --muted:#6F6D68; --line:#E1E0D9; --track:#ECEBE6;
+  --s1:#2A78D6; --s2:#EB6834; --s3:#1BAF7A; --accent:#184F95; --accent-soft:#E3EEFB; --note:#FBEBC8; --note-ink:#6B4700; --bad:#c0392b;
+}
+@media (prefers-color-scheme: dark){ :root{
+  --bg:#0D0D0D; --surface:#1A1A19; --ink:#F0EFEC; --ink2:#C3C2B7; --muted:#A3A19A; --line:#2C2C2A; --track:#262624;
+  --s1:#3987E5; --s2:#D95926; --s3:#199E70; --accent:#9EC5F4; --accent-soft:#16283D; --note:#3A2E12; --note-ink:#F0C262; --bad:#ff7b6b; color-scheme:dark } }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5}
+header.top{background:linear-gradient(135deg,#184F95,#0f3566);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+header.top h1{margin:0;font-size:17px;flex:1}
+header.top a,header.top button{color:#fff;background:rgba(255,255,255,.18);border:0;border-radius:8px;padding:7px 12px;font-size:13px;text-decoration:none;cursor:pointer}
+.wrap{max-width:900px;margin:0 auto;padding:20px 16px 56px;display:flex;flex-direction:column;gap:30px}
+h2,h3{margin:0;line-height:1.25} h2{font-size:19px} h3{font-size:15px}
+p{margin:0;max-width:68ch} .sub{color:var(--ink2)} .small{font-size:13px;color:var(--muted)}
+section{display:flex;flex-direction:column;gap:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{font:inherit;font-size:13px;font-weight:600;padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink2);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+.dates{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.dates label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+input[type=date],input[type=email],input[type=password]{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi b{font-size:23px;font-weight:700;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--muted)} .kpi i{font-style:normal;font-size:12px;color:var(--ink2)}
+.stack{display:flex;gap:2px;height:22px}
+.stack div{border-radius:4px;min-width:3px}
+.legend{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.sw{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+td.bar{width:26%;min-width:90px;text-align:left}
+.meter{height:10px;background:var(--track);border-radius:4px}
+.meter div{height:100%;background:var(--s1);border-radius:4px}
+.note{background:var(--note);color:var(--note-ink);border-radius:8px;padding:10px 12px;font-size:14px}
+.sim{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.sim label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink2)}
+.sim output{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--s1)}
+ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.login{max-width:360px;margin:60px auto;background:var(--surface);border:1px solid var(--line);padding:24px;border-radius:14px;display:flex;flex-direction:column;gap:10px}
+.login button{margin-top:6px;padding:11px;border:0;border-radius:8px;background:#184F95;color:#fff;font-weight:600;cursor:pointer;font:inherit}
+.msg{font-size:13px;color:var(--bad)}
+.hide{display:none!important}
+.status{font-size:13px;color:var(--muted)}
+.hours{display:flex;align-items:flex-end;gap:4px;height:130px;padding-top:6px}
+.hours .h{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;min-width:0;height:100%}
+.hours .h div{width:100%;background:var(--s1);border-radius:3px 3px 0 0;min-height:2px}
+.hours .h span{font-size:10px;color:var(--muted)}
+.hours .h em{font-style:normal;font-size:10px;color:var(--ink2)}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Raio-x iFood · Descontos e Cardápio</h1>
+  <span id="quem" style="font-size:12px;opacity:.9"></span>
+  <a href="../">← Zlivery</a>
+  <button id="sair" class="hide">Sair</button>
+</header>
+
+<section id="login" class="login">
+  <h2>Acesso restrito</h2>
+  <p class="small">Somente o administrador vê este painel.</p>
+  <label class="small">E-mail<input id="email" type="email" autocomplete="username" style="width:100%"></label>
+  <label class="small">Senha<input id="senha" type="password" autocomplete="current-password" style="width:100%"></label>
+  <button id="entrar">Entrar</button>
+  <div class="msg" id="loginMsg"></div>
+</section>
+
+<div id="app" class="wrap hide">
+  <header style="display:flex;flex-direction:column;gap:12px">
+    <div class="seg" role="group" aria-label="Período" id="presets">
+      <button data-p="hoje" aria-pressed="true">Hoje</button>
+      <button data-p="ontem" aria-pressed="false">Ontem</button>
+      <button data-p="7" aria-pressed="false">Últimos 7 dias</button>
+      <button data-p="30" aria-pressed="false">Últimos 30 dias</button>
+      <button data-p="mes" aria-pressed="false">Este mês</button>
+    </div>
+    <div class="dates">
+      <label>De<input type="date" id="de"></label>
+      <label>Até<input type="date" id="ate"></label>
+      <span class="small">Para um dia só, escolha a mesma data nos dois.</span>
+    </div>
+    <div class="seg" role="group" aria-label="Loja" id="lojas">
+      <button data-s="ALL" aria-pressed="true">As duas lojas</button>
+      <button data-s="L1" aria-pressed="false">Comida Mexicana</button>
+      <button data-s="L2" aria-pressed="false">Bowls &amp; Nachos</button>
+    </div>
+    <p class="status" id="status">Carregando…</p>
+  </header>
+
+  <section>
+    <div class="panel"><div class="kpis" id="kpis"></div></div>
+    <p class="small">Venda em cardápio é o valor dos itens antes de desconto e sem taxa de entrega. Não inclui comissão do iFood. Só pedidos concluídos ou em andamento, sem cancelados.</p>
+  </section>
+
+  <section id="secHora">
+    <h2>Hora a hora</h2>
+    <p class="sub" id="horaSub">Pedidos por hora no período. O número em cima é o % da venda que virou desconto da loja.</p>
+    <div class="panel"><div class="hours" id="hours"></div></div>
+  </section>
+
+  <section>
+    <h2>Para onde vai o desconto que a loja paga</h2>
+    <div class="panel">
+      <h3>Por tipo de promoção</h3>
+      <div class="stack" id="stack"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="panel">
+      <h3>Por tipo de cliente</h3>
+      <div class="tw"><table id="tseg"></table></div>
+      <div class="note" id="segnote"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Campanhas no período</h2>
+    <p class="sub">Quanto cada campanha custou para a loja e para o iFood, somando as lojas selecionadas.</p>
+    <div class="panel"><div class="tw"><table id="tcamp"></table></div></div>
+  </section>
+
+  <section>
+    <h2>Simule: e se o cliente fiel recebesse menos desconto?</h2>
+    <p class="sub">Cliente fiel é quem já pediu mais de 5 vezes na loja. Os valores são projetados para 30 dias a partir do período escolhido. A margem é uma suposição sua.</p>
+    <div class="panel">
+      <div class="sim">
+        <label for="s-corte">Corte no desconto do cliente fiel <output id="o-corte"></output><input id="s-corte" type="range" min="0" max="100" step="5" value="50"></label>
+        <label for="s-perda">Pedidos de fiéis que eu perderia <output id="o-perda"></output><input id="s-perda" type="range" min="0" max="40" step="1" value="5"></label>
+        <label for="s-margem">Margem que sobra de cada venda <output id="o-margem"></output><input id="s-margem" type="range" min="10" max="60" step="5" value="35"></label>
+      </div>
+      <div class="kpis" id="simres"></div>
+      <p class="small" id="simnote"></p>
+    </div>
+  </section>
+
+  <section id="secDia">
+    <h2>Dia a dia</h2>
+    <p class="sub">Quanto da venda em cardápio virou desconto pago pela loja.</p>
+    <div class="panel"><div class="tw"><table id="tdia"></table></div></div>
+  </section>
+
+  <section>
+    <h2>Cancelamentos</h2>
+    <div class="panel"><div class="tw"><table id="tcanc"></table></div></div>
+  </section>
+
+  <section>
+    <h2>Cardápio</h2>
+    <div class="panel">
+      <h3>Venda por família de produto</h3>
+      <div class="tw"><table id="tfam"></table></div>
+      <div class="note" id="famnote"></div>
+    </div>
+    <div class="panel">
+      <h3>Os 10 itens que mais faturam</h3>
+      <div class="tw"><table id="ttop"></table></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SB_URL = "https://lgojqzwxxwtcnprmfayb.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnb2pxend4eHd0Y25wcm1mYXliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxOTE0MzMsImV4cCI6MjA5MTc2NzQzM30.uxbpKQD0aPCzqxbWPvUuS4XxR-Og6vABR8EnlwAKL28";
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const $ = id => document.getElementById(id);
+
+const R = v => (v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0});
+const R2 = v => (v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const N = v => (v||0).toLocaleString("pt-BR");
+const P = v => isFinite(v) ? (v*100).toLocaleString("pt-BR",{maximumFractionDigits:1})+"%" : "–";
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const kpi = (l,v,x) => `<div class="kpi"><span>${l}</span><b>${v}</b>${x?`<i>${x}</i>`:""}</div>`;
+const meter = (f,t) => `<div class="meter" title="${t}"><div style="width:${Math.max(1,Math.min(100,(f||0)*100))}%"></div></div>`;
+const SEGNAME = {novo:"Novo (1º pedido na loja)",de2a5:"Voltando (2 a 5 pedidos)",fiel:"Fiel (mais de 5 pedidos)"};
+const ALVO = {ITEM:"Item",DELIVERY_FEE:"Entrega",CART:"Carrinho"};
+const STATUS = {cancelled:"Cancelado",cancelled_after_delivery:"Cancelado após entrega",cancelled_by_platform:"Cancelado pelo iFood"};
+const FAM=[[/combo/,"Combos"],[/quesadilha/,"Quesadilhas"],[/bowl/,"Bowls"],[/mac and cheese/,"Mac and Cheese"],[/chili classic/,"Burrito Chili Classic"],[/pulled pork/,"Burrito Pulled Pork"],[/chicken|chiken/,"Burritos de frango"],[/veg/,"Burritos vegetarianos e veganos"],[/rib|carne assada/,"Burritos de costela e carne assada"],[/nacho/,"Nachos"],[/coca|refrigerante|sprite|água|mate/,"Bebidas"],[/guacamole|sour cream|cheddar|pico de gallo|chili com carne/,"Molhos e extras"],[/churros|flauta/,"Sobremesas"]];
+// Encurta os textos de campanha do iFood
+function nomeCamp(t){
+  let s = String(t||"").replace(/\s*-\s*Duplicada de [0-9a-f-]+.*$/i,"").trim();
+  const clube = /clube/i.test(s);
+  const q = s.match(/"([^"]{3,60})/);
+  let base = s;
+  const porR = s.match(/(?:Tudo )?por (R\$\s?[\d,]+)/i);
+  const pct = s.match(/Desconto em Item (\d+% off)/i);
+  if (/Taxa na Faixa/i.test(s)) base = 'Lista "Taxa na Faixa"';
+  else if (q) base = q[1].split(/\.\s/)[0].replace(/\.$/,"").replace(/(R\$\s?\d+)\s?OFF/i,"$1 OFF").trim();
+  else if (porR) base = "Tudo por " + porR[1];
+  else if (pct) base = "Tudo com " + pct[1].replace("off","OFF");
+  if (/^Voc[eê] está participando da Promo[cç][aã]o\.?/i.test(base)) base = "Promoção ativa no perfil";
+  if (/há dias sem pedir/i.test(s)) base += " · recuperar clientes";
+  if (clube && !/clube/i.test(base)) base += " (Clube)";
+  return base.length > 80 ? base.slice(0,80)+"…" : base;
+}
+const fam = n => { const s=n.toLowerCase(); for (const [r,f] of FAM) if (r.test(s)) return f; return "Outros"; };
+
+// Datas no fuso de São Paulo
+const hojeSP = () => new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo"}).format(new Date());
+const addDias = (iso,n) => { const d=new Date(iso+"T12:00:00Z"); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); };
+const diasEntre = (a,b) => Math.round((new Date(b+"T12:00:00Z")-new Date(a+"T12:00:00Z"))/864e5)+1;
+const fmtData = iso => iso.split("-").reverse().join("/");
+
+let DATA = null, store = "ALL", fiel = {d:0,pago:0}, nDias = 1, timer = null;
+
+function setPreset(p){
+  const h = hojeSP(); let de=h, ate=h;
+  if (p==="ontem"){ de=ate=addDias(h,-1); }
+  else if (p==="7"){ de=addDias(h,-6); }
+  else if (p==="30"){ de=addDias(h,-29); }
+  else if (p==="mes"){ de=h.slice(0,8)+"01"; }
+  $("de").value=de; $("ate").value=ate;
+  document.querySelectorAll("#presets button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.p===p));
+  carregar();
+}
+
+async function carregar(){
+  const de=$("de").value, ate=$("ate").value;
+  if (!de || !ate) return;
+  if (ate < de){ $("status").textContent = "A data final precisa ser igual ou depois da inicial."; return; }
+  $("status").textContent = "Carregando…";
+  const { data, error } = await sb.rpc("raiox_dashboard", { p_de: de, p_ate: ate });
+  if (error){
+    if (error.code === "42501"){ await sb.auth.signOut(); mostrarLogin("Esta conta não tem acesso a este painel."); return; }
+    $("status").textContent = "Erro ao carregar: " + error.message; return;
+  }
+  DATA = data; nDias = diasEntre(de,ate);
+  const upd = data.atualizado_em ? new Date(data.atualizado_em).toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "–";
+  const hoje = ate >= hojeSP();
+  $("status").innerHTML = `${de===ate?fmtData(de):fmtData(de)+" a "+fmtData(ate)} · ${nDias} dia${nDias>1?"s":""}${hoje?" (hoje até a última atualização)":""} · Dados atualizados em <b>${upd}</b>. Atualiza de hora em hora.`;
+  render();
+  clearInterval(timer);
+  if (hoje) timer = setInterval(carregar, 10*60*1000);
+}
+
+function render(){
+  if (!DATA) return;
+  const on = r => store==="ALL" || r[0]===store;
+  const seg = DATA.seg.filter(on); const sum = i => seg.reduce((a,r)=>a+(+r[i]),0);
+  const n=sum(2), venda=sum(3), ifood=sum(5), cup=sum(6), item=sum(7), ent=sum(8), sem=sum(9), loja=cup+item+ent;
+  const k = 30/nDias;
+  $("kpis").innerHTML = n===0 ? `<p class="sub">Nenhum pedido nesse período.</p>` :
+    kpi("Pedidos",N(n), nDias>1 ? N(Math.round(n/nDias))+" por dia" : "")
+    +kpi("Venda em cardápio",R(venda), nDias>1 ? R(venda*k)+" por mês (projeção)" : "Ticket "+R2(venda/n))
+    +kpi("Desconto pago pela loja",R(loja),P(loja/venda)+" da venda"+(nDias>1?" · "+R(loja*k)+"/mês":""))
+    +kpi("Desconto pago pelo iFood",R(ifood),P(ifood/venda)+" da venda")
+    +kpi("Pedidos sem nenhum desconto",N(sem),P(sem/n)+" dos pedidos");
+
+  // horas
+  const hr = {}; for (const r of DATA.hora.filter(on)){ const h=hr[r[1]]||(hr[r[1]]={n:0,v:0,d:0}); h.n+=+r[2]; h.v+=+r[3]; h.d+=+r[4]; }
+  const hs = Object.keys(hr).map(Number);
+  if (hs.length){
+    const a=Math.min(...hs), b=Math.max(...hs), mx=Math.max(...Object.values(hr).map(h=>h.n));
+    let html=""; for (let h=a; h<=b; h++){ const x=hr[h]||{n:0,v:0,d:0};
+      html += `<div class="h" title="${h}h: ${x.n} pedidos · ${R(x.v)} · desconto loja ${R(x.d)}"><em>${x.n?P(x.d/x.v):""}</em><div style="height:${x.n/mx*80}%"></div><span>${h}h · ${x.n}</span></div>`; }
+    $("hours").innerHTML = html;
+  } else $("hours").innerHTML = `<p class="small">Sem pedidos.</p>`;
+
+  // tipo de promoção
+  const parts=[["Promoção no item",item,"--s1"],["Entrega grátis ou com desconto",ent,"--s2"],["Cupom no carrinho",cup,"--s3"]];
+  $("stack").innerHTML = loja ? parts.map(p=>`<div style="flex:${p[1]};background:var(${p[2]})" title="${p[0]}: ${R(p[1])}"></div>`).join("") : "";
+  $("legend").innerHTML = parts.map(p=>`<span><i class="sw" style="background:var(${p[2]})"></i>${p[0]}: <b>${R(p[1])}</b> (${P(p[1]/loja)})</span>`).join("");
+
+  // segmentos
+  const by={novo:{n:0,v:0,d:0,pago:0},de2a5:{n:0,v:0,d:0,pago:0},fiel:{n:0,v:0,d:0,pago:0}};
+  for (const r of seg){ const b=by[r[1]]; b.n+=+r[2]; b.v+=+r[3]; b.pago+=+r[4]; b.d+=(+r[6])+(+r[7])+(+r[8]); }
+  const maxpp = Math.max(...Object.values(by).map(b=>b.n?b.d/b.n:0)) || 1;
+  $("tseg").innerHTML = `<tr><th>Cliente</th><th>Pedidos</th><th>Desconto da loja</th><th>Por pedido</th><th>% da venda</th><th style="text-align:left">Desconto por pedido</th></tr>`+
+    ["novo","de2a5","fiel"].map(k2=>{const b=by[k2]; return `<tr><td>${SEGNAME[k2]}</td><td>${N(b.n)} (${P(b.n/n)})</td><td>${R(b.d)}</td><td>${b.n?R2(b.d/b.n):"–"}</td><td>${P(b.d/b.v)}</td><td class="bar">${meter(b.n?b.d/b.n/maxpp:0,"")}</td></tr>`}).join("");
+  fiel = {d:by.fiel.d, pago:by.fiel.pago};
+  $("segnote").textContent = loja ? `${P(by.fiel.d/loja)} do desconto que a loja paga (${R(by.fiel.d)}) vai para quem já pediu mais de 5 vezes. Clientes novos são ${P(by.novo.n/n)} dos pedidos e levam ${P(by.novo.d/loja)} do desconto.` : "Sem desconto pago pela loja no período.";
+
+  // campanhas
+  const cm={}; for (const r of DATA.camp.filter(on)){ const nome=nomeCamp(r[1]); const key=nome+"|"+r[2]; const c=cm[key]||(cm[key]={nome,alvo:r[2],n:0,l:0,i:0}); c.n+=+r[3]; c.l+=+r[4]; c.i+=+r[5]; }
+  const cl = Object.values(cm).sort((a,b)=>b.l-a.l||b.n-a.n);
+  const maxl = Math.max(1,...cl.map(c=>c.l));
+  $("tcamp").innerHTML = cl.length ? `<tr><th>Campanha</th><th>Onde</th><th>Usos</th><th>Loja pagou</th><th>iFood pagou</th><th style="text-align:left">Custo da loja</th></tr>`+
+    cl.slice(0,25).map(c=>`<tr><td>${esc(c.nome.length>90?c.nome.slice(0,90)+"…":c.nome)}</td><td>${ALVO[c.alvo]||esc(c.alvo||"–")}</td><td>${N(c.n)}</td><td>${R(c.l)}</td><td>${R(c.i)}</td><td class="bar">${meter(c.l/maxl,"")}</td></tr>`).join("")
+    + (cl.length>25?`<tr><td colspan="6" class="small">+ ${cl.length-25} campanhas menores</td></tr>`:"") : `<tr><td>Nenhuma campanha no período.</td></tr>`;
+
+  // dia a dia
+  const wk={}; for (const r of DATA.dia.filter(on)){ const w=wk[r[1]]||(wk[r[1]]={n:0,v:0,d:0}); w.n+=+r[2]; w.v+=+r[3]; w.d+=+r[4]; }
+  const dl = Object.entries(wk).sort((a,b)=>b[0].localeCompare(a[0]));
+  const maxw = Math.max(0.0001,...dl.map(([,w])=>w.d/w.v));
+  $("secDia").classList.toggle("hide", nDias<2);
+  $("tdia").innerHTML = `<tr><th>Dia</th><th>Pedidos</th><th>Venda</th><th>Desconto da loja</th><th>% da venda</th><th style="text-align:left">% em desconto</th></tr>`+
+    dl.map(([d,w])=>`<tr><td>${fmtData(d)} <span class="small">${new Date(d+"T12:00:00Z").toLocaleDateString("pt-BR",{weekday:"short",timeZone:"UTC"})}</span></td><td>${N(w.n)}</td><td>${R(w.v)}</td><td>${R(w.d)}</td><td>${P(w.d/w.v)}</td><td class="bar">${meter(w.d/w.v/maxw,"")}</td></tr>`).join("");
+
+  // cancelamentos
+  const cc = DATA.cancel.filter(on); const cs={}; for (const r of cc){ const c=cs[r[1]]||(cs[r[1]]={n:0,v:0}); c.n+=+r[2]; c.v+=+r[3]; }
+  const tot = Object.values(cs).reduce((a,c)=>a+c.n,0);
+  $("tcanc").innerHTML = tot ? `<tr><th>Tipo</th><th>Pedidos</th><th>Venda perdida</th><th>% dos pedidos</th></tr>`+
+    Object.entries(cs).map(([s,c])=>`<tr><td>${STATUS[s]||esc(s)}</td><td>${N(c.n)}</td><td>${R(c.v)}</td><td>${P(c.n/(n+tot))}</td></tr>`).join("") : `<tr><td>Nenhum cancelamento no período.</td></tr>`;
+
+  // cardápio
+  const its = DATA.itens.filter(on).map(r=>[r[0],r[1],+r[2],+r[3]]);
+  const totI = its.reduce((a,r)=>a+r[3],0), fm={};
+  for (const r of its){ const f=fam(r[1]); const o=fm[f]||(fm[f]={q:0,v:0,names:0}); o.q+=r[2]; o.v+=r[3]; o.names++; }
+  const fl = Object.entries(fm).sort((a,b)=>b[1].v-a[1].v);
+  $("tfam").innerHTML = fl.length ? `<tr><th>Família</th><th>Nomes no cardápio</th><th>Unidades</th><th>Venda</th><th>% da venda</th><th style="text-align:left">Participação</th></tr>`+
+    fl.map(([f,o])=>`<tr><td>${f}</td><td>${o.names}</td><td>${N(o.q)}</td><td>${R(o.v)}</td><td>${P(o.v/totI)}</td><td class="bar">${meter(o.v/fl[0][1].v,"")}</td></tr>`).join("") : `<tr><td>Sem itens.</td></tr>`;
+  $("famnote").textContent = fl.length ? `${fl[0][0]} responde por ${P(fl[0][1].v/totI)} da venda, com ${fl[0][1].names} nomes diferentes no cardápio. São ${its.length} nomes de item vendidos no período.` : "";
+  const lj = r => store==="ALL" ? (r[0]==="L1"?" · Mexicana":" · Bowls") : "";
+  $("ttop").innerHTML = `<tr><th>Item</th><th>Unidades</th><th>Venda</th><th>% da venda</th></tr>`+
+    its.slice().sort((a,b)=>b[3]-a[3]).slice(0,10).map(r=>`<tr><td>${esc(r[1])}<span class="small">${lj(r)}</span></td><td>${N(r[2])}</td><td>${R(r[3])}</td><td>${P(r[3]/totI)}</td></tr>`).join("");
+  sim();
+}
+
+function sim(){
+  const c=+$("s-corte").value/100, p=+$("s-perda").value/100, m=+$("s-margem").value/100;
+  $("o-corte").textContent=P(c); $("o-perda").textContent=P(p); $("o-margem").textContent=P(m);
+  const k=30/nDias, eco=fiel.d*c*(1-p)*k, perda=fiel.pago*p*k, liq=eco-perda*m;
+  $("simres").innerHTML = kpi("Desconto que deixo de pagar",R(eco),"por mês")+kpi("Venda que deixa de entrar",R(perda),"por mês")+kpi("Resultado no mês",(liq>=0?"+":"−")+R(Math.abs(liq)),liq>=0?"a favor da loja":"contra a loja");
+  const be = c>0 && (fiel.pago*m+fiel.d*c)>0 ? (fiel.d*c)/(fiel.pago*m+fiel.d*c) : 0;
+  $("simnote").textContent = c>0 ? `Com esse corte e essa margem, a conta empata se você perder até ${P(be)} dos pedidos dos clientes fiéis.` : "Sem corte, nada muda.";
+  if (nDias < 7) $("simnote").textContent += " Atenção: período curto, a projeção mensal fica instável.";
+}
+
+function mostrarLogin(msg){ $("login").classList.remove("hide"); $("app").classList.add("hide"); $("sair").classList.add("hide"); $("quem").textContent=""; $("loginMsg").textContent=msg||""; }
+async function iniciar(){
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return mostrarLogin();
+  $("login").classList.add("hide"); $("app").classList.remove("hide"); $("sair").classList.remove("hide");
+  $("quem").textContent = session.user.email;
+  setPreset("hoje");
+}
+$("entrar").onclick = async () => {
+  $("entrar").disabled = true; $("loginMsg").textContent = "";
+  const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("senha").value });
+  $("entrar").disabled = false;
+  if (error) { $("loginMsg").textContent = "E-mail ou senha incorretos."; return; }
+  iniciar();
+};
+$("senha").addEventListener("keydown", e => { if (e.key==="Enter") $("entrar").click(); });
+$("sair").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+document.querySelectorAll("#presets button").forEach(b=>b.addEventListener("click",()=>setPreset(b.dataset.p)));
+["de","ate"].forEach(id=>$(id).addEventListener("change",()=>{ document.querySelectorAll("#presets button").forEach(b=>b.setAttribute("aria-pressed","false")); carregar(); }));
+document.querySelectorAll("#lojas button").forEach(b=>b.addEventListener("click",()=>{ store=b.dataset.s; document.querySelectorAll("#lojas button").forEach(x=>x.setAttribute("aria-pressed",x===b)); render(); }));
+["s-corte","s-perda","s-margem"].forEach(id=>$(id).addEventListener("input",sim));
+iniciar();
+</script>
+</body>
+</html>
